@@ -123,6 +123,8 @@
     <string name="phone_settings_thumbnails_summary">Кадры из видео, без интернет-постеров</string>
     <string name="phone_settings_playback">Воспроизведение</string>
     <string name="phone_settings_decoding">Аппаратное декодирование</string>
+    <string name="phone_settings_decoding_on">Использовать, когда доступно</string>
+    <string name="phone_settings_decoding_off">Выключено: программное декодирование</string>
     <string name="phone_settings_audio_language">Предпочитаемая аудиодорожка</string>
     <string name="phone_settings_subtitle_language">Язык субтитров</string>
     <string name="phone_settings_more_playback">Другие параметры воспроизведения</string>

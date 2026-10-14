@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="phone_tab_content" type="id" />
+    <item name="phone_thumb_key" type="id" />
+</resources>

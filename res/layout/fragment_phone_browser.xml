@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    android:orientation="vertical">
+
+    <include layout="@layout/view_phone_toolbar" />
+
+    <TextView
+        android:id="@+id/browser_breadcrumb"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="start"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:singleLine="true"
+        android:textAppearance="@style/NovaPhone.Text.ItemMeta"
+        android:textSize="14sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/nova_touch_target"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="@dimen/nova_space_s">
+
+        <ImageView
+            android:id="@+id/browser_source_icon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_phone_folder"
+            app:tint="@color/nova_text_secondary" />
+
+        <TextView
+            android:id="@+id/browser_source"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/nova_space_s"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:textAppearance="@style/NovaPhone.Text.ItemMeta"
+            android:textSize="14sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/browser_pin"
+            style="@style/Widget.Material3.Button.TextButton.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="@dimen/nova_touch_target"
+            android:text="@string/phone_pin_folder"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:icon="@drawable/ic_phone_pin_outline" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/nova_divider" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="@dimen/nova_space_l" />
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/browser_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            android:visibility="gone"
+            app:indicatorColor="@color/nova_accent" />
+
+        <include layout="@layout/view_phone_empty" />
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/browser_pick_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/nova_nav_bg"
+        android:paddingStart="@dimen/nova_gutter"
+        android:paddingTop="@dimen/nova_space_m"
+        android:paddingEnd="@dimen/nova_gutter"
+        android:paddingBottom="@dimen/nova_space_m"
+        android:visibility="gone">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/browser_pick"
+            style="@style/NovaPhone.Button.Filled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/phone_select_this_folder"
+            app:icon="@drawable/ic_phone_check" />
+    </FrameLayout>
+</LinearLayout>

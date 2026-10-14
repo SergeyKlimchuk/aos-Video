@@ -96,6 +96,8 @@ import static com.archos.filecorelibrary.FileUtils.removeFileSlashSlash;
 import static com.archos.mediacenter.video.browser.subtitlesmanager.ISO639codes.generateTrackName;
 import static com.archos.mediacenter.video.browser.subtitlesmanager.SubtitleManager.getSubLanguageFromSubPathAndVideoPath;
 import com.archos.medialib.LibAvos;
+import com.archos.mediacenter.video.userdata.MediaRef;
+import com.archos.mediacenter.video.userdata.PlaybackHistoryTracker;
 import com.archos.mediacenter.video.utils.VideoPreferencesCommon;
 import static com.archos.mediascraper.StringUtils.stringContainsForced;
 
@@ -324,6 +326,15 @@ public class PlayerService extends Service implements Player.Listener, IndexHelp
     private boolean mPreferOriginalAudioTrack;
     private boolean mDestroyed;
     private Runnable mAutoSaveTask;
+    /** Phone UI history and progress (local, independent from the media library). */
+    private PlaybackHistoryTracker mHistoryTracker;
+    private final Runnable mHistoryTick = new Runnable() {
+        @Override
+        public void run() {
+            saveHistory();
+            if (mPlayerState == PlayerState.PLAYING) mHandler.postDelayed(this, PlaybackHistoryTracker.SAVE_INTERVAL_MS);
+        }
+    };
     private CountDownLatch mSubtitlesReadyLatch = null;
     private int mSourceRequestGeneration;
     private static final long SUBTITLE_ENUMERATION_TIMEOUT_MS = 5000; // 5 second timeout for subtitle enumeration before starting video
@@ -528,6 +539,7 @@ public class PlayerService extends Service implements Player.Listener, IndexHelp
         if (log.isDebugEnabled()) log.debug("onCreate()");
         sPlayerService = this;
         mHandler = new Handler(Looper.getMainLooper());
+        mHistoryTracker = new PlaybackHistoryTracker(this);
         if (PERIODIC_BOOKMARK_SAVE) {
             mAutoSaveTask = new Runnable() {
                 @Override
@@ -656,6 +668,7 @@ public class PlayerService extends Service implements Player.Listener, IndexHelp
             ++mSourceRequestGeneration;
             mPlaybackSession.reset(mUri, launchGeneration);
         }
+        mHistoryTracker.begin(intent, mUri, continuingSession);
         PlaybackResumePolicy.StartupSource startupSource = PlaybackResumePolicy.chooseStartupSource(
                 continuingSession, sessionPosition, explicitPosition,
                 mPlaybackSession.lastKnownPositionMs);
@@ -1187,7 +1200,21 @@ public class PlayerService extends Service implements Player.Listener, IndexHelp
         mIndexHelper.writeVideoInfo(videoInfo, mNetworkBookmarksEnabled);
     }
 
+    /** Records the phone UI history entry; only once playback has really started. */
+    private void saveHistory() {
+        if (mHistoryTracker == null || !mHistoryTracker.isTracking() || PrivateMode.isActive()) return;
+        if (mPlayerState == PlayerState.INIT || mPlayerState == PlayerState.PREPARING) return;
+        PlaybackSnapshot snapshot = getPlaybackSnapshot();
+        mHistoryTracker.update(snapshot.getPositionMs(), snapshot.getDurationMs(), snapshot.isCompleted());
+    }
+
+    /** The phone UI references the file being played, null for other launches. */
+    public MediaRef getUserDataRef() {
+        return mHistoryTracker != null ? mHistoryTracker.getRef() : null;
+    }
+
     public void saveVideoStateIfReady(){
+        saveHistory();
         if(mIndexHelper!=null) {
             if ((mPlayerState != PlayerState.INIT && mPlayerState != PlayerState.PREPARING)) {// if it has really been played at least once, otherwise it would overwrite lastresume with 0
                 if (log.isDebugEnabled()) log.debug("saveVideoStateIfReady");
@@ -1249,6 +1276,8 @@ public class PlayerService extends Service implements Player.Listener, IndexHelp
             }
             if (PERIODIC_BOOKMARK_SAVE)
                 mHandler.removeCallbacks(mAutoSaveTask);
+            mHandler.removeCallbacks(mHistoryTick);
+            mHistoryTracker.end();
             if (mAutoSkipTask != null)
                 mHandler.removeCallbacks(mAutoSkipTask);
             mPlayer.pause(PlayerController.STATE_OTHER);
@@ -1901,6 +1930,8 @@ public class PlayerService extends Service implements Player.Listener, IndexHelp
             updateNowPlayingState();
         }
         mPlaybackSession.completed = true;
+        mHandler.removeCallbacks(mHistoryTick);
+        saveHistory();
         if (mNextUri != null) {
             if (log.isDebugEnabled()) log.debug("onCompletion: we have a new video {}", mNextUri);
             stopAndSaveVideoState();
@@ -1972,6 +2003,12 @@ public class PlayerService extends Service implements Player.Listener, IndexHelp
         if (log.isDebugEnabled()) log.debug("onPlay");
         mPlayerState = PlayerState.PLAYING;
         mPlayOnResume = true;
+        if (!PrivateMode.isActive()) {
+            // first real playback: from now on the history entry exists and follows the position
+            mHistoryTracker.onPlaybackStarted();
+            mHandler.removeCallbacks(mHistoryTick);
+            mHandler.postDelayed(mHistoryTick, PlaybackHistoryTracker.SAVE_INTERVAL_MS);
+        }
         if (state == PlayerController.STATE_NORMAL) {
             if (log.isDebugEnabled()) log.debug("onPlay: PlayerController.STATE_NORMAL -> startTrakt()");
             startTrakt();
@@ -1990,6 +2027,7 @@ public class PlayerService extends Service implements Player.Listener, IndexHelp
     public void onPause(int state) {
         if (log.isDebugEnabled()) log.debug("onPause");
         mPlayerState = PlayerState.PAUSED;
+        mHandler.removeCallbacks(mHistoryTick);
         if (mPlayer != null && mPlayer.isPauseRequested()) mPlayOnResume = false;
         // pauseTrakt() must run before saveVideoStateIfReady() so that it sets
         // mVideoInfo.traktResume = -progress synchronously before the async DB write captures it

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="72dp"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/nova_gutter"
+    android:paddingTop="@dimen/nova_space_s"
+    android:paddingEnd="@dimen/nova_space_s"
+    android:paddingBottom="@dimen/nova_space_s">
+
+    <FrameLayout
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:background="@drawable/bg_nova_tile"
+        android:backgroundTint="@color/nova_card">
+
+        <ImageView
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_gravity="center"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_phone_folder"
+            app:tint="@color/nova_accent" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/nova_space_l"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/folder_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textAppearance="@style/NovaPhone.Text.ItemTitle" />
+
+        <TextView
+            android:id="@+id/folder_meta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:drawablePadding="4dp"
+            android:gravity="center_vertical"
+            android:text="@string/phone_folder"
+            android:textAppearance="@style/NovaPhone.Text.ItemMeta" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/folder_pinned"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginEnd="@dimen/nova_space_s"
+        android:contentDescription="@string/phone_folder_pinned"
+        android:src="@drawable/ic_phone_pin"
+        android:visibility="gone"
+        app:tint="@color/nova_accent" />
+
+    <ImageView
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:importantForAccessibility="no"
+        android:padding="8dp"
+        android:src="@drawable/ic_phone_chevron_right"
+        app:tint="@color/nova_text_secondary" />
+</LinearLayout>

@@ -165,6 +165,15 @@ public final class SourceAccess {
         sVerifiedHostKeys.put(source.id, System.currentTimeMillis());
     }
 
+    /**
+     * Whether FileCoreLibrary may connect to this source directly (thumbnails): always for SMB
+     * and FTP, only after the SFTP server key was checked in this session.
+     */
+    public static boolean canConnectDirectly(NetworkSource source) {
+        if (source.protocol != SourceProtocol.SFTP) return true;
+        return source.hostKeyFingerprint != null && sVerifiedHostKeys.containsKey(source.id);
+    }
+
     /** Records an explicit user decision to trust the key. */
     public static void markHostKeyTrusted(String sourceId) {
         sVerifiedHostKeys.put(sourceId, System.currentTimeMillis());

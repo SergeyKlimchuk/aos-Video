@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phone UI spacing / radius scale -->
+<resources>
+    <dimen name="nova_space_xs">4dp</dimen>
+    <dimen name="nova_space_s">8dp</dimen>
+    <dimen name="nova_space_m">12dp</dimen>
+    <dimen name="nova_space_l">16dp</dimen>
+    <dimen name="nova_space_xl">24dp</dimen>
+    <dimen name="nova_gutter">16dp</dimen>
+    <dimen name="nova_radius_card">16dp</dimen>
+    <dimen name="nova_radius_thumb">10dp</dimen>
+    <dimen name="nova_radius_tile">14dp</dimen>
+    <dimen name="nova_thumb_width">112dp</dimen>
+    <dimen name="nova_thumb_height">63dp</dimen>
+    <dimen name="nova_touch_target">48dp</dimen>
+    <dimen name="nova_icon_tile">56dp</dimen>
+    <dimen name="nova_title_size">28sp</dimen>
+    <dimen name="nova_progress_height">4dp</dimen>
+</resources>

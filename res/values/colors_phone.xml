@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phone UI palette (light). The dark variant lives in values-night. -->
+<resources>
+    <color name="nova_bg">#FFFFFF</color>
+    <color name="nova_card">#F2F5FB</color>
+    <color name="nova_card_stroke">#E3E8F1</color>
+    <color name="nova_text">#0F172A</color>
+    <color name="nova_text_secondary">#64748B</color>
+    <color name="nova_divider">#E8ECF2</color>
+    <color name="nova_accent">#3B7CF6</color>
+    <color name="nova_accent_soft">#E7EFFE</color>
+    <color name="nova_on_accent">#FFFFFF</color>
+    <color name="nova_thumb_bg">#DCE3EE</color>
+    <color name="nova_nav_bg">#FFFFFF</color>
+    <color name="nova_track">#DDE3EC</color>
+    <color name="nova_error">#E5484D</color>
+    <!-- identical in both themes -->
+    <color name="nova_heart">#F43F5E</color>
+    <color name="nova_status_ok">#22C55E</color>
+    <color name="nova_status_error">#EF4444</color>
+    <color name="nova_status_unknown">#9CA3AF</color>
+    <color name="nova_badge_bg">#CC0B1220</color>
+    <color name="nova_tile_blue">#3B82F6</color>
+    <color name="nova_tile_green">#14B8A6</color>
+    <color name="nova_tile_purple">#8B5CF6</color>
+    <color name="nova_tile_orange">#F59E0B</color>
+</resources>

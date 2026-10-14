@@ -148,6 +148,23 @@
 
         </activity>
 
+        <!-- Phone UI: Home (recently played, favorites), Sources (connections, quick access), Settings -->
+        <activity
+            android:name=".phone.PhoneMainActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity="archos.task.video"
+            android:theme="@style/NovaPhone"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".phone.SourceEditActivity"
+            android:exported="false"
+            android:taskAffinity="archos.task.video"
+            android:theme="@style/NovaPhone"
+            android:windowSoftInputMode="adjustResize" />
+
         <!-- BrowserActivityVideo used to be the entry point. We keep this alias so that old shortcuts are still working -->
         <activity-alias
             android:name="${applicationId}.browser.BrowserActivityVideo"

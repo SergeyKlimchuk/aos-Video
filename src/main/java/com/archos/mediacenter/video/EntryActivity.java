@@ -20,8 +20,8 @@ import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.archos.mediacenter.video.browser.MainActivity;
 import com.archos.mediacenter.video.leanback.MainActivityLeanback;
+import com.archos.mediacenter.video.phone.PhoneMainActivity;
 import com.archos.mediacenter.video.utils.ThemeManager;
 import com.archos.mediacenter.video.utils.VideoPreferencesCommon;
 
@@ -58,7 +58,8 @@ public class EntryActivity extends AppCompatActivity {
         if (UiChoiceDialog.applicationIsInLeanbackMode(this)) {
             activityToLaunch = MainActivityLeanback.class;
         } else {
-            activityToLaunch = MainActivity.class;
+            // phone/tablet: Home, Sources, Settings
+            activityToLaunch = PhoneMainActivity.class;
         }
 
         final Intent originIntent = getIntent();

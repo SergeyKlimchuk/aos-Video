@@ -21,6 +21,8 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 
+import androidx.annotation.VisibleForTesting;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,7 +112,14 @@ public final class UserDataStore {
         return store;
     }
 
-    UserDataStore(SQLiteOpenHelper helper, SecretCodec codec, Executor io, Executor notifier) {
+    /** Tests only: replaces the process wide instance (null restores the default one). */
+    @VisibleForTesting
+    public static void setInstanceForTest(UserDataStore store) {
+        sInstance = store;
+    }
+
+    @VisibleForTesting
+    public UserDataStore(SQLiteOpenHelper helper, SecretCodec codec, Executor io, Executor notifier) {
         mHelper = helper;
         mCodec = codec;
         mIo = io;

@@ -58,7 +58,6 @@ import com.archos.mediacenter.video.BuildConfig;
 import com.archos.mediacenter.video.CustomApplication;
 import com.archos.mediacenter.video.DensityTweak;
 import com.archos.mediacenter.video.R;
-import com.archos.mediacenter.video.browser.MainActivity;
 import com.archos.mediacenter.video.browser.adapters.mappers.AnimesNShowsMapper;
 import com.archos.mediacenter.video.browser.adapters.mappers.TvshowCursorMapper;
 import com.archos.mediacenter.video.browser.adapters.mappers.VideoCursorMapper;
@@ -75,6 +74,7 @@ import com.archos.mediacenter.video.browser.loader.VideoLoader;
 import com.archos.mediacenter.video.browser.loader.WatchingUpNextLoader;
 import com.archos.mediaprovider.video.LoaderUtils;
 import com.archos.mediaprovider.video.NetworkAutoRefresh;
+import com.archos.mediacenter.video.phone.PhoneMainActivity;
 import com.archos.mediacenter.video.leanback.adapter.object.Box;
 import com.archos.mediacenter.video.leanback.adapter.object.EmptyView;
 import com.archos.mediacenter.video.leanback.adapter.object.Icon;
@@ -1887,7 +1887,7 @@ public class MainFragment extends BrowseSupportFragment implements LoaderManager
                     case LEGACY_UI:
                         new DensityTweak(vActivity)
                                 .temporaryRestoreDefaultDensity();
-                        vActivity.startActivity(new Intent(vActivity, MainActivity.class));
+                        vActivity.startActivity(new Intent(vActivity, PhoneMainActivity.class));
                         break;
                     case HELP_FAQ:
                         WebUtils.openWebLink(vActivity,getString(R.string.faq_url));

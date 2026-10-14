@@ -28,13 +28,37 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.archos.mediacenter.video.CustomApplication;
 
+import java.util.Arrays;
+
 public class VideoPreferencesFragment extends PreferenceFragmentCompat {
 
     private VideoPreferencesCommon mPreferencesCommon = new VideoPreferencesCommon(this);
 
+    /** Shows only the playback related categories (opened from the phone UI settings). */
+    public static final String EXTRA_PLAYBACK_ONLY = "playback_only";
+
+    // Online catalogs (TMDb scraping, Trakt) are no longer used by the application.
+    private static final String[] ONLINE_CATALOG_CATEGORIES = {"scraper_category", "trakt_category"};
+    private static final String[] PLAYBACK_CATEGORIES = {"preferences_category_video", "category_languages"};
+
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         mPreferencesCommon.onCreatePreferences(savedInstanceState, rootKey);
+        // Hidden rather than removed: VideoPreferencesCommon still looks these categories up.
+        for (String key : ONLINE_CATALOG_CATEGORIES) {
+            Preference category = findPreference(key);
+            if (category != null) category.setVisible(false);
+        }
+        if (getActivity() != null && getActivity().getIntent().getBooleanExtra(EXTRA_PLAYBACK_ONLY, false)) {
+            PreferenceScreen screen = getPreferenceScreen();
+            for (int i = 0; i < screen.getPreferenceCount(); i++) {
+                Preference p = screen.getPreference(i);
+                if (!Arrays.asList(PLAYBACK_CATEGORIES).contains(p.getKey())) p.setVisible(false);
+            }
+            // the phone UI always plays with the Nova player
+            Preference thirdParty = findPreference("allow_3rd_party_player");
+            if (thirdParty != null) thirdParty.setVisible(false);
+        }
     }
 
     @Override

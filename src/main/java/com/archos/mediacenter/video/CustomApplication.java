@@ -72,6 +72,8 @@ import com.archos.mediacenter.video.utils.CodecDiscovery;
 import com.archos.mediacenter.video.utils.LocaleConfigParser;
 import com.archos.mediacenter.video.utils.OpenSubtitlesApiHelper;
 import com.archos.mediacenter.video.utils.TrustingOkHttp3Downloader;
+import com.archos.mediacenter.video.userdata.OnlineMetadataGuard;
+import com.archos.mediacenter.video.userdata.SourceAccess;
 import com.archos.mediacenter.video.utils.VideoPreferencesCommon;
 import com.archos.medialib.LibAvos;
 import com.archos.mediaprovider.video.NetworkAutoRefresh;
@@ -801,6 +803,8 @@ public class CustomApplication extends Application implements DefaultLifecycleOb
         log = LoggerFactory.getLogger(CustomApplication.class);
         configureFullLoggingAsync();
         NetworkInitialization.start(mContext);
+        // no online catalog lookups (TMDb scraping, Trakt): must run before any scan can start
+        OnlineMetadataGuard.enforce(mContext);
 
         systemLocale = Locale.getDefault();
         getDefaultLocale();
@@ -903,6 +907,8 @@ public class CustomApplication extends Application implements DefaultLifecycleOb
         updateVersionState(appContext);
         new Thread("nova-deferred-init") {
             public void run() {
+                // phone UI data and the in-memory credentials of the saved network sources
+                SourceAccess.registerAll(appContext);
                 Trakt.initApiKeys(appContext);
                 launchSambaDiscovery();
                 if (openSubtitlesApiHelper == null) openSubtitlesApiHelper = OpenSubtitlesApiHelper.getInstance();

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/toolbar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="64dp"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/nova_space_xs"
+    android:paddingEnd="@dimen/nova_space_xs">
+
+    <ImageButton
+        android:id="@+id/toolbar_back"
+        android:layout_width="@dimen/nova_touch_target"
+        android:layout_height="@dimen/nova_touch_target"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/phone_navigate_up"
+        android:src="@drawable/ic_phone_back"
+        app:tint="@color/nova_text" />
+
+    <TextView
+        android:id="@+id/toolbar_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/nova_space_s"
+        android:layout_weight="1"
+        android:accessibilityHeading="true"
+        tools:targetApi="28"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="@style/NovaPhone.Text.ToolbarTitle" />
+
+    <LinearLayout
+        android:id="@+id/toolbar_actions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal" />
+</LinearLayout>

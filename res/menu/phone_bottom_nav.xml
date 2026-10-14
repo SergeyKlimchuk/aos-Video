@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/phone_nav_home"
+        android:icon="@drawable/ic_phone_home"
+        android:title="@string/phone_nav_home" />
+    <item
+        android:id="@+id/phone_nav_sources"
+        android:icon="@drawable/ic_phone_folder"
+        android:title="@string/phone_nav_sources" />
+    <item
+        android:id="@+id/phone_nav_settings"
+        android:icon="@drawable/ic_phone_settings"
+        android:title="@string/phone_nav_settings" />
+</menu>

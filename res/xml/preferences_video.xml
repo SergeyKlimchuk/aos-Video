@@ -390,6 +390,7 @@
             app:iconSpaceReserved="false"/>
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/category_languages"
+        android:key="category_languages"
         app:iconSpaceReserved="false" >
 
         <Preference

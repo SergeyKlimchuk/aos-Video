@@ -17,37 +17,37 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="UnusedAttribute">
     <shortcut
-        android:shortcutId="resume"
-        android:enabled="true"
-        android:icon="@drawable/shortcut_resume"
-        android:shortcutShortLabel="@string/resume"
-        >
-        <intent
-            android:action="com.archos.mediacenter.video.action_resume"
-            android:targetPackage="com.archos.mediacenter.videocommunity"
-            android:targetClass="com.archos.mediacenter.video.browser.MainActivity" />
-    </shortcut>
-    <shortcut
-        android:shortcutId="movies"
+        android:shortcutId="recent"
         android:enabled="true"
         android:icon="@drawable/shortcut_recently_played"
-        android:shortcutShortLabel="@string/recently_played"
+        android:shortcutShortLabel="@string/phone_shortcut_recent"
         >
         <intent
-            android:action="com.archos.mediacenter.video.action_recently_played"
-            android:targetPackage="com.archos.mediacenter.videocommunity"
-            android:targetClass="com.archos.mediacenter.video.browser.MainActivity" />
+            android:action="com.archos.mediacenter.video.phone.SHOW_RECENT"
+            android:targetPackage="org.courville.nova"
+            android:targetClass="com.archos.mediacenter.video.phone.PhoneMainActivity" />
     </shortcut>
     <shortcut
-        android:shortcutId="tvshows"
+        android:shortcutId="favorites"
         android:enabled="true"
-        android:icon="@drawable/shortcut_recently_added"
-        android:shortcutShortLabel="@string/recently_added"
+        android:icon="@drawable/shortcut_resume"
+        android:shortcutShortLabel="@string/phone_shortcut_favorites"
         >
         <intent
-            android:action="com.archos.mediacenter.video.action_recently_added"
-            android:targetPackage="com.archos.mediacenter.videocommunity"
-            android:targetClass="com.archos.mediacenter.video.browser.MainActivity" />
+            android:action="com.archos.mediacenter.video.phone.SHOW_FAVORITES"
+            android:targetPackage="org.courville.nova"
+            android:targetClass="com.archos.mediacenter.video.phone.PhoneMainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="sources"
+        android:enabled="true"
+        android:icon="@drawable/shortcut_recently_added"
+        android:shortcutShortLabel="@string/phone_shortcut_sources"
+        >
+        <intent
+            android:action="com.archos.mediacenter.video.phone.SHOW_SOURCES"
+            android:targetPackage="org.courville.nova"
+            android:targetClass="com.archos.mediacenter.video.phone.PhoneMainActivity" />
     </shortcut>
 </shortcuts>
 

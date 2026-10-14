@@ -34,6 +34,7 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -94,6 +95,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.MenuItemCompat;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
@@ -140,6 +142,9 @@ import com.archos.mediacenter.video.utils.VideoMetadata.AudioTrack;
 import com.archos.mediacenter.video.utils.VideoMetadata.SubtitleTrack;
 import com.archos.mediacenter.video.utils.VideoMetadata.VideoTrack;
 import com.archos.mediacenter.video.utils.VideoPreferencesActivity;
+import com.archos.mediacenter.video.userdata.MediaRef;
+import com.archos.mediacenter.video.userdata.PlaybackHistoryTracker;
+import com.archos.mediacenter.video.userdata.UserDataStore;
 import com.archos.mediacenter.video.utils.VideoPreferencesCommon;
 import com.archos.mediacenter.video.utils.VideoUtils;
 import com.archos.medialib.IMediaPlayer;
@@ -240,6 +245,8 @@ public class PlayerActivity extends AppCompatActivity implements PlayerControlle
     private static final int MENU_FILE_ACTIONS_GROUP = 10;
     private static final int MENU_INFO_ID = 101;
     private static final int MENU_BOOKMARK_ID = 102;
+    private static final int MENU_FAVORITE_ID = 103;
+    private static final int MENU_START_OVER_ID = 104;
 
     private static final int MENU_GLOBAL_ACTIONS_GROUP = 20;
 
@@ -408,6 +415,7 @@ public class PlayerActivity extends AppCompatActivity implements PlayerControlle
     private boolean mHdmiPlugged = false;
     private int mNotificationMode;
     private MenuItem mInfoMenuItem;
+    private MenuItem mFavoriteMenuItem;
     private MenuItem mBookmarkMenuItem;
     private MenuItem mBrightnessMenuItem;
     private boolean mSeekingWithJoystickStarted = false;
@@ -2578,6 +2586,10 @@ public class PlayerActivity extends AppCompatActivity implements PlayerControlle
             //------------------------------------------------------------------
             // Add first the items related to the current video
             //------------------------------------------------------------------
+            // phone UI: the heart toggles the favorite without interrupting playback
+            mFavoriteMenuItem = menu.add(MENU_FILE_ACTIONS_GROUP, MENU_FAVORITE_ID, Menu.NONE, R.string.phone_favorite_add);
+            mFavoriteMenuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            updateFavoriteMenuItem();
             mInfoMenuItem = menu.add(MENU_FILE_ACTIONS_GROUP, MENU_INFO_ID, Menu.NONE, R.string.menu_info);
             if (mInfoMenuItem != null) {
                 mInfoMenuItem.setIcon(R.drawable.ic_menu_info).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
@@ -2593,6 +2605,7 @@ public class PlayerActivity extends AppCompatActivity implements PlayerControlle
             // Then add the global items related to the video player
             //------------------------------------------------------------------
 
+            menu.add(MENU_GLOBAL_ACTIONS_GROUP, MENU_START_OVER_ID, Menu.NONE, R.string.phone_menu_start_over);
             menu.add(MENU_GLOBAL_ACTIONS_GROUP, MENU_LOCK_ID, Menu.NONE, R.string.menu_lock_player);
             if (!isPluggedOnTv()) {
 
@@ -2683,8 +2696,10 @@ public class PlayerActivity extends AppCompatActivity implements PlayerControlle
         // not available. However this does not matter because this item will
         // be updated anyway after loading the video
         if (mInfoMenuItem != null) {
-            mInfoMenuItem.setVisible(mStreamingUri != null);
+            // no information card (online metadata) for videos opened from the phone UI
+            mInfoMenuItem.setVisible(mStreamingUri != null && getUserDataRef() == null);
         }
+        updateFavoriteMenuItem();
         // The first time onPrepareOptionsMenu() is called we don't know yet if
         // the "set bookmark" item can be enabled or not. However this does not
         // matter because this item will be updated anyway after loading the video
@@ -2701,9 +2716,37 @@ public class PlayerActivity extends AppCompatActivity implements PlayerControlle
         return super.onPrepareOptionsMenu(menu);
     }
 
+    private MediaRef getUserDataRef() {
+        return PlayerService.sPlayerService != null ? PlayerService.sPlayerService.getUserDataRef() : null;
+    }
+
+    private void updateFavoriteMenuItem() {
+        if (mFavoriteMenuItem == null) return;
+        MediaRef ref = getUserDataRef();
+        mFavoriteMenuItem.setVisible(ref != null);
+        if (ref == null) return;
+        boolean favorite = UserDataStore.get(this).isFavorite(ref);
+        mFavoriteMenuItem.setIcon(favorite ? R.drawable.ic_phone_heart : R.drawable.ic_phone_heart_outline);
+        mFavoriteMenuItem.setTitle(favorite ? R.string.phone_menu_remove_favorite : R.string.phone_favorite_add);
+        MenuItemCompat.setIconTintList(mFavoriteMenuItem, ColorStateList.valueOf(favorite
+                ? ContextCompat.getColor(this, R.color.nova_heart) : Color.WHITE));
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case MENU_FAVORITE_ID: {
+                MediaRef ref = getUserDataRef();
+                if (ref != null) {
+                    UserDataStore.get(this).toggleFavorite(ref,
+                            getIntent().getLongExtra(PlaybackHistoryTracker.EXTRA_FILE_SIZE, -1));
+                    updateFavoriteMenuItem();
+                }
+                return true;
+            }
+            case MENU_START_OVER_ID:
+                if (mPlayer != null) mPlayer.seekTo(0);
+                return true;
             case MENU_LOCK_ID:
                 mPlayerController.lock();
                 return true;

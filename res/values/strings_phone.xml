@@ -120,6 +120,8 @@
     <string name="phone_settings_thumbnails_summary">Frames from the videos, no online posters</string>
     <string name="phone_settings_playback">Playback</string>
     <string name="phone_settings_decoding">Hardware decoding</string>
+    <string name="phone_settings_decoding_on">Used when available</string>
+    <string name="phone_settings_decoding_off">Off: software decoding</string>
     <string name="phone_settings_audio_language">Preferred audio language</string>
     <string name="phone_settings_subtitle_language">Subtitle language</string>
     <string name="phone_settings_more_playback">More playback settings</string>
@@ -151,6 +153,11 @@
     <string name="phone_field_domain">Domain or workgroup (optional)</string>
     <string name="phone_field_start_folder">Start folder</string>
     <string name="phone_field_start_folder_hint" translatable="false">/Movies</string>
+    <string name="phone_field_share_hint" translatable="false">Video</string>
+    <string name="phone_field_domain_hint" translatable="false">WORKGROUP</string>
+    <string name="phone_protocol_smb" translatable="false">SMB</string>
+    <string name="phone_protocol_ftp" translatable="false">FTP</string>
+    <string name="phone_protocol_sftp" translatable="false">SFTP</string>
     <string name="phone_ftp_secure">Encrypt with FTPS (TLS)</string>
     <string name="phone_ftp_plain_warning">Plain FTP sends your password and the videos unencrypted.</string>
     <string name="phone_sftp_key">Server key: %s</string>

@@ -1,0 +1,79 @@
+# Phone UI (minimal network player)
+
+The phone/tablet interface is a minimal network video player: three destinations,
+one-tap playback, favorites, Quick access folders, no online metadata. The Android TV
+interface (`leanback/`) is unchanged and still selected by `EntryActivity` on TV.
+
+## Navigation
+
+```
+EntryActivity ── TV ──> MainActivityLeanback (unchanged)
+      └── phone ──> phone.PhoneMainActivity (bottom navigation, one back stack per tab)
+                     ├── Home      HomeFragment: Recently played | Favorites (VideoListFragment)
+                     ├── Sources   SourcesFragment: Connections | Quick access
+                     │               ConnectionsFragment, QuickAccessFragment
+                     │               BrowserFragment (browse / pinned / pick modes)
+                     │               SourceEditActivity (add / edit form)
+                     └── Settings  PhoneSettingsFragment
+Any video row ──> PlayerActivity (no information card, no resume dialog)
+```
+
+Back rules:
+
+- browser: one folder up within the current scenario; at its root, back to the screen
+  that opened it (Connections, Quick access, Home for "Open location");
+- pinned folder: Back never goes above the shortcut; "Parent folder" in the menu is the
+  explicit way up and Back returns to the shortcut;
+- folder picker: at its root, back to the source chooser; "Select this folder" saves the
+  shortcut and returns to Quick access;
+- root of Sources or Settings: back to Home; root of Home: standard Android behaviour.
+
+## Data (`userdata/`)
+
+`UserDataStore` keeps everything in `nova_user_data.db` (app private) with an in-memory
+cache; listeners are notified on the main thread so lists, hearts and the player stay in
+sync. It does not depend on the MediaLib video index.
+
+| Table | Content |
+| --- | --- |
+| `sources` | permanent UUID, name, protocol (smb/ftp/sftp), host, port, share, start folder, user, domain, FTPS flag, trusted SFTP key, last status, order, encrypted password |
+| `favorites` | source id + canonical path, size, date added |
+| `recents` | source id + canonical path, size, position, duration, completed flag, last played |
+| `pinned` | id, source id + canonical path, label, order (unique per source + path) |
+| `media_info` | technical cache (size, modification time, duration read from the file) |
+
+- A file is identified by **source id + canonical decoded path** (`MediaRef`): never by name
+  only, never with host or credentials. Editing a source address keeps every record.
+- Passwords are encrypted with an AES-GCM key of the Android Keystore
+  (`KeystoreSecretCodec`) and handed to FileCoreLibrary as *temporary* (in-memory)
+  credentials, so they never reach its legacy table.
+- Deleting a source is the only operation that removes linked records, after an explicit
+  confirmation listing the counts. An unreachable server never removes anything.
+
+## Playback
+
+- `VideoLauncher` starts `PlayerActivity` with `RESUME_NO` plus an explicit `position`
+  extra computed by `ResumePolicy` (< 30 s: start; last 60 s or finished: start; clips under
+  5 min use 10% / 95%). The player applies it without any dialog.
+- History and favorites lists check the file first (`SourceAccess.stat`) to report
+  "file not found", authentication or network errors; the browser plays directly.
+- `PlaybackHistoryTracker` (owned by `PlayerService`) creates the history entry only after
+  the first real `onPlay`, then saves every 5 s, on pause, on exit and at the end.
+- The player overlay shows a heart (favorite toggle without interrupting playback) and a
+  "Start over" item; the information card is hidden for phone UI launches.
+
+## Online metadata
+
+`OnlineMetadataGuard` switches off TMDb scraping (`enable_auto_scrap_key`, honoured by
+every `AutoScrapeService` pass) and Trakt (local session dropped) at startup. The scraper
+and Trakt preference categories are hidden. MediaLib keeps the libraries; nothing calls
+them anymore. Thumbnails are frames extracted from the files (`ThumbnailLoader`).
+
+## Known limitations
+
+- SFTP: FileCoreLibrary accepts any host key. The app checks the key itself
+  (`SourceAccess.verifyHostKey`, trust on first use, blocking dialog when it changes) before
+  browsing or playing from the phone UI, but a full fix belongs in FileCoreLibrary.
+- Credentials saved by the legacy UI remain in FileCoreLibrary's own table.
+- IntroDB (opt-in intro skipping) only queries scraped videos, which no longer occur for
+  new files.

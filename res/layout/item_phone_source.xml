@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/NovaPhone.Card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="@dimen/nova_gutter"
+    android:layout_marginTop="6dp"
+    android:layout_marginEnd="@dimen/nova_gutter"
+    android:layout_marginBottom="6dp"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="104dp"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/nova_space_l"
+        android:paddingTop="@dimen/nova_space_m"
+        android:paddingEnd="@dimen/nova_space_xs"
+        android:paddingBottom="@dimen/nova_space_m">
+
+        <FrameLayout
+            android:id="@+id/source_tile"
+            android:layout_width="@dimen/nova_icon_tile"
+            android:layout_height="@dimen/nova_icon_tile"
+            android:background="@drawable/bg_nova_tile">
+
+            <ImageView
+                android:id="@+id/source_icon"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                app:tint="@android:color/white" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/nova_space_l"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/source_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textAppearance="@style/NovaPhone.Text.ItemTitle"
+                android:textSize="17sp" />
+
+            <TextView
+                android:id="@+id/source_location"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="middle"
+                android:singleLine="true"
+                android:textAppearance="@style/NovaPhone.Text.ItemMeta"
+                android:textSize="14sp" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:id="@+id/source_status_dot"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:background="@drawable/bg_nova_dot" />
+
+                <TextView
+                    android:id="@+id/source_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:textAppearance="@style/NovaPhone.Text.ItemMeta"
+                    android:textSize="14sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/source_more"
+            android:layout_width="@dimen/nova_touch_target"
+            android:layout_height="@dimen/nova_touch_target"
+            android:layout_gravity="top"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/phone_more_actions"
+            android:src="@drawable/ic_phone_more_vert"
+            app:tint="@color/nova_text_secondary" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

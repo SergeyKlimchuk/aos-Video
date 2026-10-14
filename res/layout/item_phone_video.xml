@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:baselineAligned="false"
+    android:gravity="center_vertical"
+    android:minHeight="88dp"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/nova_gutter"
+    android:paddingTop="@dimen/nova_space_m"
+    android:paddingEnd="@dimen/nova_space_xs"
+    android:paddingBottom="@dimen/nova_space_m">
+
+    <FrameLayout
+        android:id="@+id/video_thumb_frame"
+        android:layout_width="@dimen/nova_thumb_width"
+        android:layout_height="@dimen/nova_thumb_height"
+        android:background="@drawable/bg_nova_thumb">
+
+        <ImageView
+            android:id="@+id/video_thumb_icon"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="center"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_phone_movie"
+            app:tint="@color/nova_text_secondary" />
+
+        <ImageView
+            android:id="@+id/video_thumb"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:scaleType="centerCrop" />
+
+        <TextView
+            android:id="@+id/video_duration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="5dp"
+            android:background="@drawable/bg_nova_badge"
+            android:paddingStart="6dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="2dp"
+            android:textAppearance="@style/NovaPhone.Text.Badge"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/video_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textAppearance="@style/NovaPhone.Text.ItemTitle" />
+
+        <TextView
+            android:id="@+id/video_meta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/NovaPhone.Text.ItemMeta" />
+
+        <TextView
+            android:id="@+id/video_warning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:drawablePadding="4dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/phone_source_unavailable"
+            android:textAppearance="@style/NovaPhone.Text.ItemMeta"
+            android:textColor="@color/nova_error"
+            android:visibility="gone" />
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/video_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:importantForAccessibility="no"
+            android:max="1000"
+            android:visibility="gone"
+            app:indicatorColor="@color/nova_accent"
+            app:trackColor="@color/nova_track"
+            app:trackCornerRadius="2dp"
+            app:trackThickness="@dimen/nova_progress_height" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <ImageButton
+            android:id="@+id/video_heart"
+            android:layout_width="@dimen/nova_touch_target"
+            android:layout_height="@dimen/nova_touch_target"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/phone_favorite_add"
+            android:src="@drawable/ic_phone_heart_outline" />
+
+        <ImageButton
+            android:id="@+id/video_more"
+            android:layout_width="@dimen/nova_touch_target"
+            android:layout_height="@dimen/nova_touch_target"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/phone_more_actions"
+            android:src="@drawable/ic_phone_more_vert"
+            android:visibility="gone"
+            app:tint="@color/nova_text_secondary" />
+    </LinearLayout>
+</LinearLayout>

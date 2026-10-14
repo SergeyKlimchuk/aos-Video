@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Phone UI theme: light or dark through the night qualifier (values-night colors). -->
+    <style name="NovaPhone" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/nova_accent</item>
+        <item name="colorOnPrimary">@color/nova_on_accent</item>
+        <item name="colorPrimaryContainer">@color/nova_accent_soft</item>
+        <item name="colorOnPrimaryContainer">@color/nova_accent</item>
+        <item name="colorSecondary">@color/nova_accent</item>
+        <item name="colorSecondaryContainer">@color/nova_accent_soft</item>
+        <item name="colorOnSecondaryContainer">@color/nova_accent</item>
+        <item name="colorTertiary">@color/nova_accent</item>
+        <item name="colorError">@color/nova_error</item>
+        <item name="android:colorBackground">@color/nova_bg</item>
+        <item name="colorSurface">@color/nova_bg</item>
+        <item name="colorOnSurface">@color/nova_text</item>
+        <item name="colorOnBackground">@color/nova_text</item>
+        <item name="colorOnSurfaceVariant">@color/nova_text_secondary</item>
+        <item name="colorSurfaceVariant">@color/nova_card</item>
+        <item name="colorSurfaceContainerLowest">@color/nova_bg</item>
+        <item name="colorSurfaceContainerLow">@color/nova_card</item>
+        <item name="colorSurfaceContainer">@color/nova_nav_bg</item>
+        <item name="colorSurfaceContainerHigh">@color/nova_bg</item>
+        <item name="colorSurfaceContainerHighest">@color/nova_card</item>
+        <item name="colorOutline">@color/nova_card_stroke</item>
+        <item name="colorOutlineVariant">@color/nova_divider</item>
+        <item name="android:windowBackground">@color/nova_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/nova_nav_bg</item>
+        <item name="android:windowLightStatusBar">@bool/nova_light_system_bars</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">@bool/nova_light_system_bars</item>
+        <item name="android:textColorPrimary">@color/nova_text</item>
+        <item name="android:textColorSecondary">@color/nova_text_secondary</item>
+        <item name="tabStyle">@style/NovaPhone.Tabs</item>
+        <item name="bottomNavigationStyle">@style/NovaPhone.BottomNav</item>
+        <item name="materialAlertDialogTheme">@style/NovaPhone.Dialog</item>
+        <item name="snackbarStyle">@style/Widget.Material3.Snackbar</item>
+    </style>
+
+    <style name="NovaPhone.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurfaceContainerHigh">@color/nova_bg</item>
+        <item name="colorPrimary">@color/nova_accent</item>
+    </style>
+
+    <!-- Tabs: full width underline, no caps, like the concept -->
+    <style name="NovaPhone.Tabs" parent="Widget.Material3.TabLayout">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="tabIndicatorColor">@color/nova_accent</item>
+        <item name="tabIndicatorHeight">3dp</item>
+        <item name="tabIndicatorFullWidth">true</item>
+        <item name="tabSelectedTextColor">@color/nova_accent</item>
+        <item name="tabTextColor">@color/nova_text_secondary</item>
+        <item name="tabTextAppearance">@style/NovaPhone.Text.Tab</item>
+        <item name="tabRippleColor">@color/nova_accent_soft</item>
+        <item name="tabGravity">fill</item>
+        <item name="tabMode">fixed</item>
+    </style>
+
+    <style name="NovaPhone.BottomNav" parent="Widget.Material3.BottomNavigationView">
+        <item name="backgroundTint">@color/nova_nav_bg</item>
+        <item name="itemIconTint">@color/nova_nav_item</item>
+        <item name="itemTextColor">@color/nova_nav_item</item>
+        <item name="itemActiveIndicatorStyle">@style/NovaPhone.BottomNav.Indicator</item>
+        <item name="itemTextAppearanceActive">@style/NovaPhone.Text.NavLabel</item>
+        <item name="itemTextAppearanceInactive">@style/NovaPhone.Text.NavLabel</item>
+        <item name="labelVisibilityMode">labeled</item>
+    </style>
+
+    <style name="NovaPhone.BottomNav.Indicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@android:color/transparent</item>
+    </style>
+
+    <!-- Text styles -->
+    <style name="NovaPhone.Text.ScreenTitle" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:textSize">@dimen/nova_title_size</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/nova_text</item>
+    </style>
+
+    <style name="NovaPhone.Text.ToolbarTitle" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textSize">22sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/nova_text</item>
+    </style>
+
+    <style name="NovaPhone.Text.Tab" parent="TextAppearance.Material3.TitleSmall">
+        <item name="android:textSize">15sp</item>
+        <item name="textAllCaps">false</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="NovaPhone.Text.NavLabel" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="NovaPhone.Text.SectionHeader" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textSize">17sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/nova_text</item>
+    </style>
+
+    <style name="NovaPhone.Text.SectionLabel" parent="TextAppearance.Material3.TitleSmall">
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/nova_text_secondary</item>
+    </style>
+
+    <style name="NovaPhone.Text.ItemTitle" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/nova_text</item>
+    </style>
+
+    <style name="NovaPhone.Text.ItemMeta" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/nova_text_secondary</item>
+    </style>
+
+    <style name="NovaPhone.Text.Badge" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">11sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@android:color/white</item>
+    </style>
+
+    <style name="NovaPhone.Text.Body" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/nova_text</item>
+    </style>
+
+    <style name="NovaPhone.Text.FieldLabel" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/nova_text</item>
+    </style>
+
+    <!-- Rounded card used for sources, quick access and settings groups -->
+    <style name="NovaPhone.Card" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">@color/nova_card</item>
+        <item name="cardCornerRadius">@dimen/nova_radius_card</item>
+        <item name="strokeColor">@color/nova_card_stroke</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="cardElevation">0dp</item>
+    </style>
+
+    <style name="NovaPhone.SettingsSection">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingEnd">20dp</item>
+        <item name="android:paddingTop">20dp</item>
+        <item name="android:paddingBottom">10dp</item>
+        <item name="android:textAppearance">@style/NovaPhone.Text.SectionLabel</item>
+    </style>
+
+    <style name="NovaPhone.FormLabel">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">@dimen/nova_space_l</item>
+        <item name="android:layout_marginBottom">@dimen/nova_space_s</item>
+        <item name="android:textAppearance">@style/NovaPhone.Text.FieldLabel</item>
+    </style>
+
+    <style name="NovaPhone.Button.Segment" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/nova_segment_text</item>
+        <item name="backgroundTint">@color/nova_segment_bg</item>
+        <item name="strokeColor">@color/nova_card_stroke</item>
+    </style>
+
+    <style name="NovaPhone.Button.Tonal" parent="Widget.Material3.Button.TonalButton">
+        <item name="backgroundTint">@color/nova_accent_soft</item>
+        <item name="android:textColor">@color/nova_accent</item>
+        <item name="iconTint">@color/nova_accent</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="shapeAppearance">@style/NovaPhone.Shape.Large</item>
+    </style>
+
+    <style name="NovaPhone.Button.Filled" parent="Widget.Material3.Button">
+        <item name="android:minHeight">56dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="shapeAppearance">@style/NovaPhone.Shape.Large</item>
+    </style>
+
+    <style name="NovaPhone.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">56dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="strokeColor">@color/nova_accent</item>
+        <item name="shapeAppearance">@style/NovaPhone.Shape.Large</item>
+    </style>
+
+    <style name="NovaPhone.Shape.Large" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">14dp</item>
+    </style>
+
+    <style name="NovaPhone.TextField" parent="Widget.Material3.TextInputLayout.FilledBox">
+        <item name="boxBackgroundColor">@color/nova_card</item>
+        <item name="boxStrokeWidth">0dp</item>
+        <item name="boxStrokeWidthFocused">2dp</item>
+        <item name="boxCornerRadiusTopStart">14dp</item>
+        <item name="boxCornerRadiusTopEnd">14dp</item>
+        <item name="boxCornerRadiusBottomStart">14dp</item>
+        <item name="boxCornerRadiusBottomEnd">14dp</item>
+        <item name="hintEnabled">false</item>
+    </style>
+</resources>

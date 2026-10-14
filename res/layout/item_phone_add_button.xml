@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="@dimen/nova_gutter"
+    android:paddingTop="@dimen/nova_space_s"
+    android:paddingEnd="@dimen/nova_gutter"
+    android:paddingBottom="@dimen/nova_space_s">
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/add_button"
+        style="@style/NovaPhone.Button.Tonal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/phone_add_source"
+        android:textAllCaps="false" />
+</FrameLayout>

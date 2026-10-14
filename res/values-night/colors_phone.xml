@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="nova_bg">#111722</color>
+    <color name="nova_card">#1A2231</color>
+    <color name="nova_card_stroke">#263043</color>
+    <color name="nova_text">#F1F5F9</color>
+    <color name="nova_text_secondary">#94A3B8</color>
+    <color name="nova_divider">#222B3A</color>
+    <color name="nova_accent">#4B8BF7</color>
+    <color name="nova_accent_soft">#1C2A45</color>
+    <color name="nova_on_accent">#FFFFFF</color>
+    <color name="nova_thumb_bg">#222C3C</color>
+    <color name="nova_nav_bg">#131A26</color>
+    <color name="nova_track">#2A3446</color>
+    <color name="nova_error">#F87171</color>
+</resources>

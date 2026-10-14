@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/settings_scroll"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingBottom="@dimen/nova_space_xl">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:accessibilityHeading="true"
+            tools:targetApi="28"
+            android:paddingStart="20dp"
+            android:paddingTop="20dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="12dp"
+            android:text="@string/phone_settings_title"
+            android:textAppearance="@style/NovaPhone.Text.ScreenTitle" />
+
+        <!-- Appearance -->
+        <TextView
+            style="@style/NovaPhone.SettingsSection"
+            android:text="@string/phone_settings_appearance" />
+
+        <com.google.android.material.card.MaterialCardView
+            style="@style/NovaPhone.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/nova_gutter"
+            android:layout_marginEnd="@dimen/nova_gutter">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="@dimen/nova_space_l"
+                    android:paddingTop="@dimen/nova_space_l"
+                    android:paddingEnd="@dimen/nova_space_l"
+                    android:text="@string/phone_settings_theme"
+                    android:textAppearance="@style/NovaPhone.Text.ItemTitle" />
+
+                <LinearLayout
+                    android:id="@+id/settings_theme_options"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingStart="@dimen/nova_space_m"
+                    android:paddingTop="@dimen/nova_space_m"
+                    android:paddingEnd="@dimen/nova_space_m"
+                    android:paddingBottom="@dimen/nova_space_l" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/nova_card_stroke" />
+
+                <LinearLayout
+                    android:id="@+id/settings_thumbnails_row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:gravity="center_vertical"
+                    android:minHeight="72dp"
+                    android:orientation="horizontal"
+                    android:paddingStart="@dimen/nova_space_l"
+                    android:paddingEnd="@dimen/nova_space_l">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:paddingTop="@dimen/nova_space_m"
+                        android:paddingBottom="@dimen/nova_space_m">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/phone_settings_thumbnails"
+                            android:textAppearance="@style/NovaPhone.Text.ItemTitle" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/phone_settings_thumbnails_summary"
+                            android:textAppearance="@style/NovaPhone.Text.ItemMeta" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/settings_thumbnails_switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/nova_space_m"
+                        android:contentDescription="@string/phone_settings_thumbnails" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Playback -->
+        <TextView
+            style="@style/NovaPhone.SettingsSection"
+            android:text="@string/phone_settings_playback" />
+
+        <com.google.android.material.card.MaterialCardView
+            style="@style/NovaPhone.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/nova_gutter"
+            android:layout_marginEnd="@dimen/nova_gutter">
+
+            <LinearLayout
+                android:id="@+id/settings_playback_rows"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Sources and data -->
+        <TextView
+            style="@style/NovaPhone.SettingsSection"
+            android:text="@string/phone_settings_sources_data" />
+
+        <com.google.android.material.card.MaterialCardView
+            style="@style/NovaPhone.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/nova_gutter"
+            android:layout_marginEnd="@dimen/nova_gutter">
+
+            <LinearLayout
+                android:id="@+id/settings_data_rows"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

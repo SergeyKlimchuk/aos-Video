@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ImageButton xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="@dimen/nova_touch_target"
+    android:layout_height="@dimen/nova_touch_target"
+    android:background="?attr/selectableItemBackgroundBorderless"
+    app:tint="@color/nova_text"
+    tools:ignore="ContentDescription" />

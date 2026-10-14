@@ -35,6 +35,7 @@ import android.view.View;
 import android.widget.RemoteViews;
 import android.widget.Toast;
 
+import com.archos.mediacenter.video.EntryActivity;
 import com.archos.mediacenter.video.R;
 import com.archos.mediacenter.video.browser.MainActivity;
 import com.archos.mediacenter.video.info.VideoInfoActivity;
@@ -262,7 +263,7 @@ public class WidgetProviderVideo extends AppWidgetProvider {
                 rv.setTextViewText(R.id.label, getLabel(context, config.mode));
 
                 // Pending intent on the icon and title
-                Intent appIntent = new Intent(context, MainActivity.class);
+                Intent appIntent = new Intent(context, EntryActivity.class);
                 PendingIntent appPendingIntent = PendingIntent.getActivity(context, 0 /* no requestCode */, appIntent,
                         PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
                 rv.setOnClickPendingIntent(R.id.app_icon, appPendingIntent);
