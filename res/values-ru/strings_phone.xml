@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Bottom navigation -->
+    <string name="phone_nav_home">Главная</string>
+    <string name="phone_nav_sources">Источники</string>
+    <string name="phone_nav_settings">Настройки</string>
+
+    <!-- Home -->
+    <string name="phone_tab_recent">Последнее просмотренное</string>
+    <string name="phone_tab_favorites">Избранное</string>
+    <string name="phone_recent_header">Последнее просмотренное</string>
+    <string name="phone_favorites_header">Ваше избранное</string>
+    <plurals name="phone_video_count">
+        <item quantity="one">%d видео</item>
+        <item quantity="few">%d видео</item>
+        <item quantity="many">%d видео</item>
+        <item quantity="other">%d видео</item>
+    </plurals>
+    <string name="phone_recent_empty">Здесь появятся недавно просмотренные видео.</string>
+    <string name="phone_favorites_empty">Пока нет избранных видео.</string>
+    <string name="phone_favorites_empty_hint">Нажмите на сердечко рядом с любым видео или внутри плеера.</string>
+    <string name="phone_open_sources">Открыть источники</string>
+    <string name="phone_add_source">Добавить источник</string>
+    <string name="phone_today_at">Сегодня, %s</string>
+    <string name="phone_yesterday_at">Вчера, %s</string>
+    <string name="phone_added_today">Добавлено сегодня</string>
+    <string name="phone_added_yesterday">Добавлено вчера</string>
+    <string name="phone_added_on">Добавлено %s</string>
+    <string name="phone_menu_open_location">Открыть расположение</string>
+    <string name="phone_menu_start_over">Начать сначала</string>
+    <string name="phone_menu_remove_history">Удалить из истории</string>
+    <string name="phone_menu_remove_favorite">Убрать из избранного</string>
+    <string name="phone_favorite_add">Добавить в избранное</string>
+    <string name="phone_favorite_removed">Удалено из избранного</string>
+    <string name="phone_removed_from_history">Удалено из истории</string>
+    <string name="phone_undo">Отменить</string>
+    <string name="phone_more_actions">Дополнительные действия</string>
+    <string name="phone_source_unavailable">Источник недоступен</string>
+
+    <!-- Opening a video -->
+    <string name="phone_connecting_to">Подключение к «%s»…</string>
+    <string name="phone_retry">Повторить</string>
+    <string name="phone_connection_settings">Настройки подключения</string>
+    <string name="phone_file_not_found_title">Файл не найден</string>
+    <string name="phone_file_not_found_message">«%s» больше нет по этому пути. Запись останется в списках, пока вы её не удалите.</string>
+    <string name="phone_cannot_connect_title">Не удалось подключиться к «%s»</string>
+
+    <!-- Network errors -->
+    <string name="phone_error_auth">Неверное имя пользователя или пароль.</string>
+    <string name="phone_error_access_denied">Нет прав доступа к этой папке.</string>
+    <string name="phone_error_not_found">Папка или файл не найдены.</string>
+    <string name="phone_error_unreachable">Сервер недоступен. Проверьте, что он включён и находится в той же сети.</string>
+    <string name="phone_error_protocol">Сервер использует неподдерживаемый режим протокола или шифрования.</string>
+    <string name="phone_error_host_key">Нужно подтвердить ключ SSH-сервера.</string>
+    <string name="phone_error_unknown">Ошибка подключения.</string>
+    <string name="phone_error_timeout">Сервер не отвечает.</string>
+
+    <!-- Sources -->
+    <string name="phone_sources_title">Источники</string>
+    <string name="phone_tab_connections">Подключения</string>
+    <string name="phone_tab_quick_access">Быстрый доступ</string>
+    <string name="phone_connections_header">Сетевые подключения</string>
+    <plurals name="phone_source_count">
+        <item quantity="one">%d источник</item>
+        <item quantity="few">%d источника</item>
+        <item quantity="many">%d источников</item>
+        <item quantity="other">%d источника</item>
+    </plurals>
+    <string name="phone_sources_empty">Источники ещё не подключены.</string>
+    <string name="phone_status_available">Доступен</string>
+    <string name="phone_status_unavailable">Недоступен</string>
+    <string name="phone_status_unknown">Не проверен</string>
+    <string name="phone_status_checking">Проверка…</string>
+    <string name="phone_menu_open">Открыть</string>
+    <string name="phone_menu_edit_connection">Изменить подключение</string>
+    <string name="phone_menu_check_connection">Проверить соединение</string>
+    <string name="phone_menu_delete_connection">Удалить подключение</string>
+    <string name="phone_delete_source_title">Удалить «%s»?</string>
+    <string name="phone_delete_source_message">Вместе с подключением будут удалены связанные локальные записи: избранное — %1$d, история — %2$d, закреплённые папки — %3$d.\n\nФайлы на сервере удалены не будут.</string>
+    <string name="phone_delete_source_message_empty">Файлы на сервере удалены не будут.</string>
+    <string name="phone_delete">Удалить</string>
+    <string name="phone_check_ok">«%s» доступен</string>
+
+    <!-- Quick access -->
+    <string name="phone_pinned_header">Закреплённые папки</string>
+    <string name="phone_add">Добавить</string>
+    <string name="phone_add_folder">Добавить папку</string>
+    <string name="phone_pinned_hint">Закреплённая папка открывается сразу, без переходов по родительским каталогам. Удерживайте карточку, чтобы изменить порядок.</string>
+    <string name="phone_pinned_empty">Закреплённых папок пока нет.</string>
+    <string name="phone_pinned_empty_hint">Закрепите часто используемые папки, чтобы открывать их одним нажатием.</string>
+    <string name="phone_menu_rename">Переименовать</string>
+    <string name="phone_menu_unpin">Убрать из быстрого доступа</string>
+    <string name="phone_menu_pin">Закрепить в быстром доступе</string>
+    <string name="phone_rename_shortcut">Переименовать ярлык</string>
+    <string name="phone_shortcut_name">Название ярлыка</string>
+    <string name="phone_pin_folder">Закрепить папку</string>
+    <string name="phone_unpin_folder">Открепить папку</string>
+    <string name="phone_folder_pinned">Папка закреплена в быстром доступе</string>
+    <string name="phone_folder_unpinned">Папка убрана из быстрого доступа</string>
+    <string name="phone_already_pinned">Эта папка уже закреплена как «%s».</string>
+    <string name="phone_choose_source">Выберите источник</string>
+    <string name="phone_no_sources_for_pin">Сначала добавьте источник.</string>
+    <string name="phone_save">Сохранить</string>
+
+    <!-- Browser -->
+    <string name="phone_folder">Папка</string>
+    <string name="phone_video_files">Видеофайлы</string>
+    <string name="phone_folder_empty">Здесь нет папок и видео.</string>
+    <string name="phone_parent_folder">Родительская папка</string>
+    <string name="phone_refresh">Обновить</string>
+    <string name="phone_select_this_folder">Выбрать эту папку</string>
+    <string name="phone_pick_folder_title">Выбор папки</string>
+    <string name="phone_navigate_up">Назад</string>
+
+    <!-- Settings -->
+    <string name="phone_settings_title">Настройки</string>
+    <string name="phone_settings_appearance">Внешний вид</string>
+    <string name="phone_settings_theme">Тема приложения</string>
+    <string name="phone_theme_light">Светлая</string>
+    <string name="phone_theme_dark">Тёмная</string>
+    <string name="phone_theme_system">Как в системе</string>
+    <string name="phone_settings_thumbnails">Показывать миниатюры</string>
+    <string name="phone_settings_thumbnails_summary">Кадры из видео, без интернет-постеров</string>
+    <string name="phone_settings_playback">Воспроизведение</string>
+    <string name="phone_settings_decoding">Аппаратное декодирование</string>
+    <string name="phone_settings_audio_language">Предпочитаемая аудиодорожка</string>
+    <string name="phone_settings_subtitle_language">Язык субтитров</string>
+    <string name="phone_settings_more_playback">Другие параметры воспроизведения</string>
+    <string name="phone_settings_more_playback_summary">Звук, субтитры, буферизация</string>
+    <string name="phone_settings_sources_data">Источники и данные</string>
+    <string name="phone_settings_manage_sources">Управление источниками</string>
+    <string name="phone_settings_thumb_cache">Кеш миниатюр</string>
+    <string name="phone_settings_thumb_cache_summary">Занято %s · Очистить</string>
+    <string name="phone_clear_cache_title">Очистить кеш миниатюр?</string>
+    <string name="phone_clear_cache_message">Избранное, история, позиции просмотра, подключения и закреплённые папки не изменятся.</string>
+    <string name="phone_clear">Очистить</string>
+    <string name="phone_cache_cleared">Кеш миниатюр очищен (освобождено %s)</string>
+
+    <!-- Source form -->
+    <string name="phone_add_source_title">Добавить источник</string>
+    <string name="phone_edit_source_title">Изменить источник</string>
+    <string name="phone_protocol">Протокол подключения</string>
+    <string name="phone_field_name">Название</string>
+    <string name="phone_field_name_hint">Домашний NAS</string>
+    <string name="phone_field_host">Адрес сервера</string>
+    <string name="phone_field_user">Имя пользователя</string>
+    <string name="phone_field_port">Порт</string>
+    <string name="phone_field_password">Пароль</string>
+    <string name="phone_password_kept">Сохранён. Оставьте пустым, чтобы не менять.</string>
+    <string name="phone_field_share">Сетевой ресурс (share)</string>
+    <string name="phone_field_share_browse">Выбрать ресурс</string>
+    <string name="phone_field_domain">Домен или рабочая группа (необязательно)</string>
+    <string name="phone_field_start_folder">Начальная папка</string>
+    <string name="phone_ftp_secure">Шифрование FTPS (TLS)</string>
+    <string name="phone_ftp_plain_warning">Обычный FTP передаёт пароль и данные без шифрования.</string>
+    <string name="phone_sftp_key">Ключ сервера: %s</string>
+    <string name="phone_sftp_key_unknown">Ключ сервера будет показан для подтверждения при первом подключении.</string>
+    <string name="phone_test">Проверить</string>
+    <string name="phone_testing">Проверка соединения…</string>
+    <string name="phone_test_ok">Соединение успешно проверено</string>
+    <string name="phone_error_required">Обязательное поле</string>
+    <string name="phone_error_port">Порт от 1 до 65535</string>
+    <string name="phone_save_unverified_title">Сохранить без проверки?</string>
+    <string name="phone_save_unverified_message">Не удалось проверить соединение: %s\n\nИсточник будет отмечен как «Не проверен».</string>
+    <string name="phone_save_anyway">Всё равно сохранить</string>
+    <string name="phone_discard_title">Отменить изменения?</string>
+    <string name="phone_discard_message">Изменения подключения не сохранены.</string>
+    <string name="phone_discard">Не сохранять</string>
+    <string name="phone_keep_editing">Продолжить</string>
+    <string name="phone_shares_none">Сетевые ресурсы не найдены</string>
+
+    <!-- SFTP host key -->
+    <string name="phone_hostkey_new_title">Подтвердите ключ сервера</string>
+    <string name="phone_hostkey_new_message">Первое подключение к %1$s. Убедитесь, что отпечаток совпадает с ключом вашего сервера:\n\n%2$s</string>
+    <string name="phone_hostkey_changed_title">Ключ сервера изменился</string>
+    <string name="phone_hostkey_changed_message">Ключ %1$s отличается от ранее подтверждённого. Возможно, сервер переустановлен, но это может быть и атака. Подключение заблокировано.\n\nНовый отпечаток:\n%2$s</string>
+    <string name="phone_hostkey_trust">Доверять</string>
+    <string name="phone_hostkey_trust_new">Доверять новому ключу</string>
+
+    <!-- Launcher shortcuts -->
+    <string name="phone_shortcut_recent">Недавние</string>
+    <string name="phone_shortcut_favorites">Избранное</string>
+    <string name="phone_shortcut_sources">Источники</string>
+</resources>

@@ -1830,6 +1830,15 @@ public class VideoPreferencesCommon implements OnSharedPreferenceChangeListener 
     }
 
     private void buildLanguageList(String languages, List<String> languageEntries, List<String> languageEntryValues) {
+        buildLanguageList(getActivity(), languages, languageEntries, languageEntryValues);
+    }
+
+    /** Audio track and subtitle languages, as offered by the playback preferences. */
+    public static void buildPlaybackLanguageList(Context context, List<String> languageEntries, List<String> languageEntryValues) {
+        buildLanguageList(context, OPENSUBTITLES_LANGUAGES, languageEntries, languageEntryValues);
+    }
+
+    private static void buildLanguageList(Context context, String languages, List<String> languageEntries, List<String> languageEntryValues) {
         String[] languageCodeArray = languages.split("\\|"); // contains 2 letters language code
 
         Locale defaultLocale = Locale.getDefault();
@@ -1851,7 +1860,7 @@ public class VideoPreferencesCommon implements OnSharedPreferenceChangeListener 
         TreeMap<String, String> sortedLanguages = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
         for (String s : languageCodeArray) {
-            String currentLocaleLanguage = com.archos.mediacenter.video.browser.subtitlesmanager.ISO639codes.getLanguageNameFor2LetterCode(getActivity(), s);
+            String currentLocaleLanguage = com.archos.mediacenter.video.browser.subtitlesmanager.ISO639codes.getLanguageNameFor2LetterCode(context, s);
             if (currentLocaleLanguage.equalsIgnoreCase(defaultLocaleLanguage) || currentLocaleLanguage.equalsIgnoreCase(englishLocaleLanguage))
                 continue;
             sortedLanguages.put(currentLocaleLanguage, s);

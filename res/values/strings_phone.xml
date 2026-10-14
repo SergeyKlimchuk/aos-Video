@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phone UI: Home / Sources / Settings -->
+<resources>
+    <!-- Bottom navigation -->
+    <string name="phone_nav_home">Home</string>
+    <string name="phone_nav_sources">Sources</string>
+    <string name="phone_nav_settings">Settings</string>
+
+    <!-- Home -->
+    <string name="phone_tab_recent">Recently played</string>
+    <string name="phone_tab_favorites">Favorites</string>
+    <string name="phone_recent_header">Recently played</string>
+    <string name="phone_favorites_header">Your favorites</string>
+    <plurals name="phone_video_count">
+        <item quantity="one">%d video</item>
+        <item quantity="other">%d videos</item>
+    </plurals>
+    <string name="phone_recent_empty">Recently played videos will appear here.</string>
+    <string name="phone_favorites_empty">No favorite videos yet.</string>
+    <string name="phone_favorites_empty_hint">Tap the heart next to any video or inside the player.</string>
+    <string name="phone_open_sources">Open sources</string>
+    <string name="phone_add_source">Add source</string>
+    <string name="phone_today_at">Today, %s</string>
+    <string name="phone_yesterday_at">Yesterday, %s</string>
+    <string name="phone_added_today">Added today</string>
+    <string name="phone_added_yesterday">Added yesterday</string>
+    <string name="phone_added_on">Added %s</string>
+    <string name="phone_menu_open_location">Open location</string>
+    <string name="phone_menu_start_over">Start over</string>
+    <string name="phone_menu_remove_history">Remove from history</string>
+    <string name="phone_menu_remove_favorite">Remove from favorites</string>
+    <string name="phone_favorite_add">Add to favorites</string>
+    <string name="phone_favorite_removed">Removed from favorites</string>
+    <string name="phone_removed_from_history">Removed from history</string>
+    <string name="phone_undo">Undo</string>
+    <string name="phone_more_actions">More actions</string>
+    <string name="phone_source_unavailable">Source unavailable</string>
+
+    <!-- Opening a video -->
+    <string name="phone_connecting_to">Connecting to %s…</string>
+    <string name="phone_retry">Retry</string>
+    <string name="phone_connection_settings">Connection settings</string>
+    <string name="phone_file_not_found_title">File not found</string>
+    <string name="phone_file_not_found_message">“%s” is no longer at this location. It stays in your lists until you remove it.</string>
+    <string name="phone_cannot_connect_title">Cannot connect to %s</string>
+
+    <!-- Network errors -->
+    <string name="phone_error_auth">Wrong user name or password.</string>
+    <string name="phone_error_access_denied">You are not allowed to open this folder.</string>
+    <string name="phone_error_not_found">The folder or file was not found.</string>
+    <string name="phone_error_unreachable">The server cannot be reached. Check that it is on and on the same network.</string>
+    <string name="phone_error_protocol">The server uses a protocol or security mode that is not supported.</string>
+    <string name="phone_error_host_key">The SSH server key must be confirmed.</string>
+    <string name="phone_error_unknown">Connection error.</string>
+    <string name="phone_error_timeout">The server does not respond.</string>
+
+    <!-- Sources -->
+    <string name="phone_sources_title">Sources</string>
+    <string name="phone_tab_connections">Connections</string>
+    <string name="phone_tab_quick_access">Quick access</string>
+    <string name="phone_connections_header">Network connections</string>
+    <plurals name="phone_source_count">
+        <item quantity="one">%d source</item>
+        <item quantity="other">%d sources</item>
+    </plurals>
+    <string name="phone_sources_empty">No sources connected yet.</string>
+    <string name="phone_status_available">Available</string>
+    <string name="phone_status_unavailable">Unavailable</string>
+    <string name="phone_status_unknown">Not checked</string>
+    <string name="phone_status_checking">Checking…</string>
+    <string name="phone_menu_open">Open</string>
+    <string name="phone_menu_edit_connection">Edit connection</string>
+    <string name="phone_menu_check_connection">Check connection</string>
+    <string name="phone_menu_delete_connection">Delete connection</string>
+    <string name="phone_delete_source_title">Delete “%s”?</string>
+    <string name="phone_delete_source_message">Linked local records will be removed as well: favorites: %1$d, history entries: %2$d, Quick access folders: %3$d.\n\nFiles on the server will not be deleted.</string>
+    <string name="phone_delete_source_message_empty">Files on the server will not be deleted.</string>
+    <string name="phone_delete">Delete</string>
+    <string name="phone_check_ok">“%s” is available</string>
+
+    <!-- Quick access -->
+    <string name="phone_pinned_header">Pinned folders</string>
+    <string name="phone_add">Add</string>
+    <string name="phone_add_folder">Add folder</string>
+    <string name="phone_pinned_hint">A pinned folder opens directly, without going through its parent folders. Long-press a card to change the order.</string>
+    <string name="phone_pinned_empty">No pinned folders yet.</string>
+    <string name="phone_pinned_empty_hint">Pin the folders you use most to open them in one tap.</string>
+    <string name="phone_menu_rename">Rename</string>
+    <string name="phone_menu_unpin">Remove from Quick access</string>
+    <string name="phone_menu_pin">Pin to Quick access</string>
+    <string name="phone_rename_shortcut">Rename shortcut</string>
+    <string name="phone_shortcut_name">Shortcut name</string>
+    <string name="phone_pin_folder">Pin folder</string>
+    <string name="phone_unpin_folder">Unpin folder</string>
+    <string name="phone_folder_pinned">Pinned to Quick access</string>
+    <string name="phone_folder_unpinned">Removed from Quick access</string>
+    <string name="phone_already_pinned">This folder is already pinned as “%s”.</string>
+    <string name="phone_choose_source">Choose a source</string>
+    <string name="phone_no_sources_for_pin">Add a source first.</string>
+    <string name="phone_save">Save</string>
+
+    <!-- Browser -->
+    <string name="phone_folder">Folder</string>
+    <string name="phone_video_files">Video files</string>
+    <string name="phone_folder_empty">No folders or videos here.</string>
+    <string name="phone_parent_folder">Parent folder</string>
+    <string name="phone_refresh">Refresh</string>
+    <string name="phone_select_this_folder">Select this folder</string>
+    <string name="phone_pick_folder_title">Choose a folder</string>
+    <string name="phone_navigate_up">Back</string>
+
+    <!-- Settings -->
+    <string name="phone_settings_title">Settings</string>
+    <string name="phone_settings_appearance">Appearance</string>
+    <string name="phone_settings_theme">App theme</string>
+    <string name="phone_theme_light">Light</string>
+    <string name="phone_theme_dark">Dark</string>
+    <string name="phone_theme_system">System</string>
+    <string name="phone_settings_thumbnails">Show thumbnails</string>
+    <string name="phone_settings_thumbnails_summary">Frames from the videos, no online posters</string>
+    <string name="phone_settings_playback">Playback</string>
+    <string name="phone_settings_decoding">Hardware decoding</string>
+    <string name="phone_settings_audio_language">Preferred audio language</string>
+    <string name="phone_settings_subtitle_language">Subtitle language</string>
+    <string name="phone_settings_more_playback">More playback settings</string>
+    <string name="phone_settings_more_playback_summary">Audio output, subtitles, buffering</string>
+    <string name="phone_settings_sources_data">Sources and data</string>
+    <string name="phone_settings_manage_sources">Manage sources</string>
+    <string name="phone_settings_manage_sources_summary" translatable="false">SMB, FTP, SFTP</string>
+    <string name="phone_settings_thumb_cache">Thumbnail cache</string>
+    <string name="phone_settings_thumb_cache_summary">Used: %s · Clear</string>
+    <string name="phone_clear_cache_title">Clear the thumbnail cache?</string>
+    <string name="phone_clear_cache_message">Favorites, history, playback positions, connections and Quick access are not affected.</string>
+    <string name="phone_clear">Clear</string>
+    <string name="phone_cache_cleared">Thumbnail cache cleared (%s freed)</string>
+
+    <!-- Source form -->
+    <string name="phone_add_source_title">Add source</string>
+    <string name="phone_edit_source_title">Edit source</string>
+    <string name="phone_protocol">Connection protocol</string>
+    <string name="phone_field_name">Name</string>
+    <string name="phone_field_name_hint">Home NAS</string>
+    <string name="phone_field_host">Server address</string>
+    <string name="phone_field_host_hint" translatable="false">192.168.1.10</string>
+    <string name="phone_field_user">User name</string>
+    <string name="phone_field_port">Port</string>
+    <string name="phone_field_password">Password</string>
+    <string name="phone_password_kept">Saved. Leave empty to keep it.</string>
+    <string name="phone_field_share">Network share</string>
+    <string name="phone_field_share_browse">Browse shares</string>
+    <string name="phone_field_domain">Domain or workgroup (optional)</string>
+    <string name="phone_field_start_folder">Start folder</string>
+    <string name="phone_field_start_folder_hint" translatable="false">/Movies</string>
+    <string name="phone_ftp_secure">Encrypt with FTPS (TLS)</string>
+    <string name="phone_ftp_plain_warning">Plain FTP sends your password and the videos unencrypted.</string>
+    <string name="phone_sftp_key">Server key: %s</string>
+    <string name="phone_sftp_key_unknown">The server key will be shown for confirmation on the first connection.</string>
+    <string name="phone_test">Test</string>
+    <string name="phone_testing">Checking the connection…</string>
+    <string name="phone_test_ok">Connection successfully verified</string>
+    <string name="phone_error_required">Required</string>
+    <string name="phone_error_port">Port from 1 to 65535</string>
+    <string name="phone_save_unverified_title">Save without verification?</string>
+    <string name="phone_save_unverified_message">The connection could not be verified: %s\n\nThe source will be shown as “Not checked”.</string>
+    <string name="phone_save_anyway">Save anyway</string>
+    <string name="phone_discard_title">Discard changes?</string>
+    <string name="phone_discard_message">Your changes to this connection are not saved.</string>
+    <string name="phone_discard">Discard</string>
+    <string name="phone_keep_editing">Keep editing</string>
+    <string name="phone_shares_none">No shares found</string>
+
+    <!-- SFTP host key -->
+    <string name="phone_hostkey_new_title">Confirm the server key</string>
+    <string name="phone_hostkey_new_message">First connection to %1$s. Check that this fingerprint matches your server:\n\n%2$s</string>
+    <string name="phone_hostkey_changed_title">The server key has changed</string>
+    <string name="phone_hostkey_changed_message">The key presented by %1$s differs from the one you trusted. The server may have been reinstalled, but this can also be an attack. The connection is blocked.\n\nNew fingerprint:\n%2$s</string>
+    <string name="phone_hostkey_trust">Trust</string>
+    <string name="phone_hostkey_trust_new">Trust the new key</string>
+
+    <!-- Launcher shortcuts -->
+    <string name="phone_shortcut_recent">Recent</string>
+    <string name="phone_shortcut_favorites">Favorites</string>
+    <string name="phone_shortcut_sources">Sources</string>
+</resources>
