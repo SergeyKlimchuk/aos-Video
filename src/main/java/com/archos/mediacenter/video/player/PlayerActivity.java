@@ -1112,8 +1112,8 @@ public class PlayerActivity extends AppCompatActivity implements PlayerControlle
         PlayerService.sPlayerService.setUiContext(this);
         Player.sPlayer = mPlayer;
         PlayerService.sPlayerService.setPlayer();
-        if(mPermissionChecker.hasExternalPermission(this)) {
-            if (log.isDebugEnabled()) log.debug("postOnPlayerServiceBind: hasExternalPermission");
+        if (!needsStoragePermission() || mPermissionChecker.hasExternalPermission(this)) {
+            if (log.isDebugEnabled()) log.debug("postOnPlayerServiceBind: storage access not needed or granted");
             PlayerService.sPlayerService.onStart(intent);
             mUserPausedVideo = !PlayerService.sPlayerService.isPlayOnResume();
             PlayerService.sPlayerService.setIndexHelper(mIndexHelper);
@@ -1138,7 +1138,7 @@ public class PlayerActivity extends AppCompatActivity implements PlayerControlle
         }
         PlayerBrightnessManager.getInstance().restoreBrightness(this);
         if(!mWasInPictureInPicture){
-            mPermissionChecker.checkAndRequestPermission(this);
+            if (needsStoragePermission()) mPermissionChecker.checkAndRequestPermission(this);
             if (!isFinishing() && !isDestroyed()) {
                 if (mHasAskedFloatingPermission && Settings.canDrawOverlays(this)) { //permission has been granted
                     startService(new Intent(this, FloatingPlayerService.class));
@@ -3322,6 +3322,17 @@ public class PlayerActivity extends AppCompatActivity implements PlayerControlle
     @Override
     public boolean onSearchRequested() {
         return false;
+    }
+
+    /**
+     * Only files read from the device storage need the media permission: network shares
+     * (SMB, FTP, SFTP...) and content:// URIs granted by another app never do.
+     */
+    private boolean needsStoragePermission() {
+        Uri uri = getIntent() != null ? getIntent().getData() : null;
+        if (uri == null) return false;
+        String scheme = uri.getScheme();
+        return scheme == null || "file".equals(scheme) || uri.toString().startsWith("/");
     }
 
     @Override

@@ -92,9 +92,9 @@ public class PermissionChecker {
         // WRITE_EXTERNAL_STORAGE is maxSdkVersion 29, auto-granted API<=22, requires explicit user permission 23<=API<=32, i.e. not required to be in manifest 30<=API<=32 but programmatically requested
         // READ_EXTERNAL_STORAGE is maxSdkVersion 32, auto-granted API<=22, requires explicit user permission 23<=API<=32
         // for API>=33 instead of using WRITE_EXTERNAL_STORAGE and READ_EXTERNAL_STORAGE, more granularity is required and READ_MEDIA_(VIDEO|AUDIO|IMAGE) need to be requested when MANAGE_EXTERNAL_STORAGE is not used
-        // for API>=33, POST_NOTIFICATIONS permission is also required
         // Environment.isExternalStorageManager() used to check MANAGE_EXTERNAL_STORAGE is for API>=30
-        // for API>=34 FOREGROUND_SERVICE_DATA_SYNC (not granted for nova by google (yay!) and FOREGROUND_SERVICE_MEDIA_PLAYBACK are required
+        // Only storage access is requested: microphone and notifications are not needed to play videos,
+        // FOREGROUND_SERVICE_MEDIA_PLAYBACK is a normal (install time) permission
 
         if (Build.VERSION.SDK_INT >= 30) {
             Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:" + mActivity.getPackageName()));
@@ -108,109 +108,52 @@ public class PermissionChecker {
             if (log.isDebugEnabled()) log.debug("checkAndRequestPermission: is MANAGE_EXTERNAL_STORAGE granted? {}", Environment.isExternalStorageManager());
             if (!isDialogDisplayed && !Environment.isExternalStorageManager()) {
                 if (log.isDebugEnabled()) log.debug("checkAndRequestPermission: requesting MANAGE_EXTERNAL_STORAGE");
-                if(Build.VERSION.SDK_INT >= 34) { // Need FOREGROUND_SERVICE_DATA_* too
-                    ActivityCompat.requestPermissions(
-                            activity,
-                            new String[]{ // MANAGE_EXTERNAL_STORAGE provides READ thus no need to ask both except for legacy code?
-                                    Manifest.permission.MANAGE_EXTERNAL_STORAGE,
-                                    Manifest.permission.POST_NOTIFICATIONS,
-                                    Manifest.permission.RECORD_AUDIO,
-                                    //Manifest.permission.FOREGROUND_SERVICE_DATA_SYNC,
-                                    Manifest.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK
-                            },
-                            PERM_REQ_MANAGE
-                    );
-                    isDialogDisplayed = true;
-                } else {
-                    if (Build.VERSION.SDK_INT >= 33) { // Need POST_NOTIFICATIONS too
-                        ActivityCompat.requestPermissions(
-                                activity,
-                                new String[]{ // MANAGE_EXTERNAL_STORAGE provides READ thus no need to ask both except for legacy code?
-                                        Manifest.permission.MANAGE_EXTERNAL_STORAGE,
-                                        Manifest.permission.POST_NOTIFICATIONS,
-                                        Manifest.permission.RECORD_AUDIO
-                                },
-                                PERM_REQ_MANAGE
-                        );
-                        isDialogDisplayed = true;
-                    } else {
-                        ActivityCompat.requestPermissions(
-                                activity,
-                                new String[]{ // MANAGE_EXTERNAL_STORAGE provides READ thus no need to ask both except for legacy code?
-                                        Manifest.permission.MANAGE_EXTERNAL_STORAGE,
-                                        Manifest.permission.RECORD_AUDIO
-                                },
-                                PERM_REQ_MANAGE
-                        );
-                        isDialogDisplayed = true;
-                    }
-                }
+                ActivityCompat.requestPermissions(
+                        activity,
+                        new String[]{ // MANAGE_EXTERNAL_STORAGE provides READ thus no need to ask both except for legacy code?
+                                Manifest.permission.MANAGE_EXTERNAL_STORAGE
+                        },
+                        PERM_REQ_MANAGE
+                );
+                isDialogDisplayed = true;
             }
-        } else {
-
-            if (Build.VERSION.SDK_INT >= 34) { // API>=33 no WRITE_EXTERNAL_STORAGE and READ_EXTERNAL_STORAGE needs extra media granularity
-                if (!isDialogDisplayed && ContextCompat.checkSelfPermission(mActivity, android.Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
-                    if (log.isDebugEnabled()) log.debug("checkAndRequestPermission: API>=33 requesting READ_MEDIA_VIDEO");
-                    ActivityCompat.requestPermissions(
-                            activity,
-                            new String[]{
-                                    Manifest.permission.READ_MEDIA_VIDEO,
-                                    Manifest.permission.READ_MEDIA_IMAGES,
-                                    Manifest.permission.POST_NOTIFICATIONS,
-                                    Manifest.permission.RECORD_AUDIO,
-                                    //Manifest.permission.FOREGROUND_SERVICE_DATA_SYNC,
-                                    Manifest.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK
-                            },
-                            PERM_REQ_RW
-                    );
-                    isDialogDisplayed = true;
-                }
-            } else {
-                if (Build.VERSION.SDK_INT >= 33) { // API>=33 no WRITE_EXTERNAL_STORAGE and READ_EXTERNAL_STORAGE needs extra media granularity
-                    if (!isDialogDisplayed && ContextCompat.checkSelfPermission(mActivity, android.Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
-                        if (log.isDebugEnabled()) log.debug("checkAndRequestPermission: API>=33 requesting READ_MEDIA_VIDEO");
-                        ActivityCompat.requestPermissions(
-                                activity,
-                                new String[]{
-                                        Manifest.permission.READ_MEDIA_VIDEO,
-                                        Manifest.permission.READ_MEDIA_IMAGES,
-                                        Manifest.permission.POST_NOTIFICATIONS,
-                                        Manifest.permission.RECORD_AUDIO
-                                },
-                                PERM_REQ_RW
-                        );
-                        isDialogDisplayed = true;
-                    }
-                } else {
-                    if (Build.VERSION.SDK_INT <= 29) { // 23<=API<=29 WRITE_EXTERNAL_STORAGE and READ_EXTERNAL_STORAGE auto-granted (READ should be auto-granted via WRITE)
-                        if (!isDialogDisplayed && ContextCompat.checkSelfPermission(mActivity, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                            if (log.isDebugEnabled()) log.debug("checkAndRequestPermission: 23<=API<30 requesting (READ|WRITE)_EXTERNAL_STORAGE");
-                            ActivityCompat.requestPermissions(
-                                    activity,
-                                    new String[]{
-                                            Manifest.permission.READ_EXTERNAL_STORAGE,
-                                            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                                            Manifest.permission.RECORD_AUDIO
-                                    },
-                                    PERM_REQ_RW
-                            );
-                            isDialogDisplayed = true;
-                        }
-                    } else { // 30<=API<33 WRITE_EXTERNAL_STORAGE does nothing and is not in manifest thus only READ_EXTERNAL_STORAGE
-                        if (!isDialogDisplayed && ContextCompat.checkSelfPermission(mActivity, android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                            if (log.isDebugEnabled()) log.debug("checkAndRequestPermission: 30<=API<33 requesting READ_EXTERNAL_STORAGE");
-                            ActivityCompat.requestPermissions(
-                                    activity,
-                                    new String[]{
-                                            Manifest.permission.READ_EXTERNAL_STORAGE,
-                                            Manifest.permission.RECORD_AUDIO
-                                    },
-                                    PERM_REQ_RW
-                            );
-                            isDialogDisplayed = true;
-                        }
-                    }
-                }
+        } else if (Build.VERSION.SDK_INT >= 33) { // API>=33 no WRITE_EXTERNAL_STORAGE and READ_EXTERNAL_STORAGE needs extra media granularity
+            if (!isDialogDisplayed && ContextCompat.checkSelfPermission(mActivity, android.Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
+                if (log.isDebugEnabled()) log.debug("checkAndRequestPermission: API>=33 requesting READ_MEDIA_VIDEO");
+                ActivityCompat.requestPermissions(
+                        activity,
+                        new String[]{
+                                Manifest.permission.READ_MEDIA_VIDEO,
+                                Manifest.permission.READ_MEDIA_IMAGES
+                        },
+                        PERM_REQ_RW
+                );
+                isDialogDisplayed = true;
+            }
+        } else if (Build.VERSION.SDK_INT <= 29) { // 23<=API<=29 WRITE_EXTERNAL_STORAGE and READ_EXTERNAL_STORAGE auto-granted (READ should be auto-granted via WRITE)
+            if (!isDialogDisplayed && ContextCompat.checkSelfPermission(mActivity, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                if (log.isDebugEnabled()) log.debug("checkAndRequestPermission: 23<=API<30 requesting (READ|WRITE)_EXTERNAL_STORAGE");
+                ActivityCompat.requestPermissions(
+                        activity,
+                        new String[]{
+                                Manifest.permission.READ_EXTERNAL_STORAGE,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        },
+                        PERM_REQ_RW
+                );
+                isDialogDisplayed = true;
+            }
+        } else { // 30<=API<33 WRITE_EXTERNAL_STORAGE does nothing and is not in manifest thus only READ_EXTERNAL_STORAGE
+            if (!isDialogDisplayed && ContextCompat.checkSelfPermission(mActivity, android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                if (log.isDebugEnabled()) log.debug("checkAndRequestPermission: 30<=API<33 requesting READ_EXTERNAL_STORAGE");
+                ActivityCompat.requestPermissions(
+                        activity,
+                        new String[]{
+                                Manifest.permission.READ_EXTERNAL_STORAGE
+                        },
+                        PERM_REQ_RW
+                );
+                isDialogDisplayed = true;
             }
         }
     }
@@ -255,8 +198,7 @@ public class PermissionChecker {
             isGranted = true;
         }
         for (int i = 0; i < permissions.length; i++) {
-            // RECORD_AUDIO is optional
-            isGranted = isGranted && (grantResults[i] == PackageManager.PERMISSION_GRANTED || permissions[i].equals(Manifest.permission.RECORD_AUDIO));
+            isGranted = isGranted && grantResults[i] == PackageManager.PERMISSION_GRANTED;
             if (grantResults[i] == PackageManager.PERMISSION_DENIED)
                 log.warn("onRequestPermissionsResult: permission {} not granted", permissions[i]);
             if (grantResults[i] == PackageManager.PERMISSION_GRANTED)
