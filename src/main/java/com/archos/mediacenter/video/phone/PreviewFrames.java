@@ -26,6 +26,7 @@ import com.archos.mediacenter.video.userdata.MediaRef;
 import com.archos.mediacenter.video.userdata.NetworkError;
 import com.archos.mediacenter.video.userdata.NetworkSource;
 import com.archos.mediacenter.video.userdata.SourceAccess;
+import com.archos.mediacenter.video.userdata.SourceProtocol;
 import com.archos.mediacenter.video.userdata.UserDataStore;
 import com.archos.medialib.IMediaMetadataRetriever;
 import com.archos.medialib.MediaFactory;
@@ -47,8 +48,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <ul>
  * <li>{@link #COUNT} frames, each in the middle of an equal part of the video: neither the black
  *     first frame nor the very end;</li>
- * <li>the file is looked up first: the retriever reports an unreachable server or a missing file
- *     only as missing frames after its timeouts, FileCoreLibrary tells why at once;</li>
+ * <li>the file is looked up first (SMB, FTP): the retriever reports an unreachable server or a
+ *     missing file only as missing frames after its timeouts, FileCoreLibrary tells why at once;
+ *     SFTP only gets its key checked, FileCoreLibrary misreports its other failures;</li>
  * <li>frames extracted once come back from the thumbnail disk cache, without any connection when
  *     the duration is already known;</li>
  * <li>{@link #CONNECTIONS} connections at most, each with its own retriever; the frame nearest to
@@ -79,8 +81,8 @@ final class PreviewFrames {
     interface Listener {
         void onDuration(long durationMs);
 
-        /** A null frame means this position could not be decoded. */
-        void onFrame(int index, Bitmap frame);
+        /** A frame, or (frame null) the reason why there is none for this position. */
+        void onFrame(int index, Bitmap frame, @StringRes int failure);
 
         /** Nothing at all can be shown for this video. */
         void onError(@StringRes int message);
@@ -258,7 +260,7 @@ final class PreviewFrames {
                         return;
                     }
                 }
-                deliver(index, frame);
+                deliver(index, frame, R.string.phone_preview_frame_unavailable);
                 index = -1;
             }
         } catch (SourceAccess.HostKeyException e) {
@@ -267,7 +269,7 @@ final class PreviewFrames {
             if (log.isDebugEnabled()) log.debug("run: {} ({})", mRef.getName(), e.getClass().getSimpleName());
             if (first) abort(index, NetworkError.of(e).kind.messageRes);
             // a helper connection that cannot open simply leaves the frames to the others
-            else if (index >= 0) deliver(index, null);
+            else if (index >= 0) deliver(index, null, NetworkError.of(e).kind.messageRes);
         } finally {
             if (extractor != null) {
                 synchronized (mLock) {
@@ -309,7 +311,7 @@ final class PreviewFrames {
      *              credentials or a missing file then fail at once with their own message
      */
     private Extractor open(boolean probe) throws Exception {
-        if (probe) sProbe.check(mContext, mSource, mRef);
+        if (probe && mSource.protocol != SourceProtocol.SFTP) sProbe.check(mContext, mSource, mRef);
         // FileCoreLibrary accepts any SFTP key: check it like every other connection of the app
         else if (!SourceAccess.canConnectDirectly(mSource)) SourceAccess.verifyHostKey(mSource);
         Extractor extractor = sFactory.create(mContext);
@@ -350,7 +352,7 @@ final class PreviewFrames {
         }
     }
 
-    private void deliver(final int index, final Bitmap frame) {
+    private void deliver(final int index, final Bitmap frame, @StringRes final int failure) {
         final boolean nothing;
         synchronized (mLock) {
             if (mCancelled) return;
@@ -360,12 +362,15 @@ final class PreviewFrames {
             nothing = mFinished == COUNT && mDelivered == 0;
         }
         post(() -> {
-            mListener.onFrame(index, frame);
             if (nothing) mListener.onError(R.string.phone_preview_error_frames);
+            mListener.onFrame(index, frame, frame != null ? 0 : failure);
         });
     }
 
-    /** The file cannot be read: every frame not extracted yet fails. */
+    /**
+     * The file cannot be read: every frame not extracted yet fails with this reason, which is
+     * also the error of the card when nothing at all could be shown.
+     */
     private void abort(int current, @StringRes final int message) {
         final List<Integer> failed = new ArrayList<>();
         final boolean nothing;
@@ -381,8 +386,8 @@ final class PreviewFrames {
             nothing = mDelivered == 0;
         }
         post(() -> {
-            for (int i : failed) mListener.onFrame(i, null);
             if (nothing) mListener.onError(message);
+            for (int i : failed) mListener.onFrame(i, null, message);
         });
     }
 

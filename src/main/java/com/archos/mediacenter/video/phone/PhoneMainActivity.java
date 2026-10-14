@@ -22,6 +22,7 @@ import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
@@ -219,11 +220,8 @@ public class PhoneMainActivity extends PhoneBaseActivity {
                 mOpeningKey = KeyEvent.KEYCODE_UNKNOWN;
                 return super.dispatchKeyEvent(event);
             }
-            // Back closes the card (mBack); the volume keeps working
-            if (code == KeyEvent.KEYCODE_BACK || code == KeyEvent.KEYCODE_VOLUME_UP
-                    || code == KeyEvent.KEYCODE_VOLUME_DOWN || code == KeyEvent.KEYCODE_VOLUME_MUTE) {
-                return super.dispatchKeyEvent(event);
-            }
+            // Back closes the card (mBack); volume, media and other system keys keep working
+            if (event.isSystem()) return super.dispatchKeyEvent(event);
             // any other key closes it and goes no further (Enter would play the row behind)
             if (action == KeyEvent.ACTION_DOWN) {
                 mSwallowKey = code;
@@ -240,8 +238,15 @@ public class PhoneMainActivity extends PhoneBaseActivity {
 
     @Override
     public boolean dispatchGenericMotionEvent(MotionEvent ev) {
-        // mouse wheel, hover: not for the hidden list
-        if (mPreview != null) return true;
+        // the wheel and the mouse buttons are not for the hidden list; hovering goes on to the
+        // card (explore by touch), which keeps it from the screen behind
+        if (mPreview != null) {
+            int action = ev.getActionMasked();
+            if (action == MotionEvent.ACTION_SCROLL || action == MotionEvent.ACTION_BUTTON_PRESS
+                    || action == MotionEvent.ACTION_BUTTON_RELEASE) {
+                return true;
+            }
+        }
         return super.dispatchGenericMotionEvent(ev);
     }
 
@@ -332,28 +337,11 @@ public class PhoneMainActivity extends PhoneBaseActivity {
     void showPreview(ListItems.VideoItem item, View row, Bitmap placeholder) {
         if (item.source == null || isFinishing()) return;
         dismissPreview();
-        // the finger of the long press is the one on the row (another may rest elsewhere)
-        int pointerId = -1;
-        float x = 0;
-        float y = 0;
-        if (isFingerDown() && row != null) {
-            MotionEvent last = mLastTouch;
-            int[] location = new int[2];
-            row.getLocationInWindow(location);
-            int lifted = last.getActionMasked() == MotionEvent.ACTION_POINTER_UP ? last.getActionIndex() : -1;
-            for (int i = 0; i < last.getPointerCount(); i++) {
-                float px = last.getX(i);
-                float py = last.getY(i);
-                if (i != lifted && px >= location[0] && px < location[0] + row.getWidth()
-                        && py >= location[1] && py < location[1] + row.getHeight()) {
-                    pointerId = last.getPointerId(i);
-                    x = px;
-                    y = py;
-                    break;
-                }
-            }
-        }
-        boolean touch = pointerId >= 0;
+        int index = findRowPointer(row);
+        boolean touch = index >= 0;
+        int pointerId = touch ? mLastTouch.getPointerId(index) : -1;
+        float x = touch ? mLastTouch.getX(index) : 0;
+        float y = touch ? mLastTouch.getY(index) : 0;
         mOpeningKey = touch ? KeyEvent.KEYCODE_UNKNOWN : mHeldKey;
         mOpeningKeyDownTime = mHeldKeyDownTime;
         mPreview = VideoPreview.show(this, item, placeholder, touch, pointerId, x, y, preview -> {
@@ -369,6 +357,35 @@ public class PhoneMainActivity extends PhoneBaseActivity {
             super.dispatchTouchEvent(cancel);
             cancel.recycle();
         }
+    }
+
+    /**
+     * The finger of a long press: the one on the row (another may rest elsewhere), allowing the
+     * drift a long press tolerates, or the only finger down. -1 without one.
+     */
+    private int findRowPointer(View row) {
+        if (!isFingerDown() || row == null) return -1;
+        MotionEvent last = mLastTouch;
+        int[] location = new int[2];
+        row.getLocationInWindow(location);
+        float slop = 2f * ViewConfiguration.get(this).getScaledTouchSlop();
+        int lifted = last.getActionMasked() == MotionEvent.ACTION_POINTER_UP ? last.getActionIndex() : -1;
+        int best = -1;
+        float bestDistance = Float.MAX_VALUE;
+        int fingers = 0;
+        int only = -1;
+        for (int i = 0; i < last.getPointerCount(); i++) {
+            if (i == lifted) continue;
+            fingers++;
+            only = i;
+            float dx = Math.max(0, Math.max(location[0] - last.getX(i), last.getX(i) - (location[0] + row.getWidth())));
+            float dy = Math.max(0, Math.max(location[1] - last.getY(i), last.getY(i) - (location[1] + row.getHeight())));
+            if (dx <= slop && dy <= slop && dx * dx + dy * dy < bestDistance) {
+                best = i;
+                bestDistance = dx * dx + dy * dy;
+            }
+        }
+        return best >= 0 ? best : fingers == 1 ? only : -1;
     }
 
     void dismissPreview() {

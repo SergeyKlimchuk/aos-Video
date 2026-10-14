@@ -88,6 +88,8 @@ final class VideoPreview {
     private final int[] mLocation = new int[2];
     private final Bitmap[] mBitmaps = new Bitmap[COUNT];
     private final int[] mStates = new int[COUNT];
+    /** Why a frame is missing (string resource), 0 when it is not. */
+    private final int[] mFailures = new int[COUNT];
     private final Runnable mAdvance = this::advance;
     private ValueAnimator mShowAnimator;
 
@@ -172,8 +174,8 @@ final class VideoPreview {
                     }
 
                     @Override
-                    public void onFrame(int index, Bitmap frame) {
-                        VideoPreview.this.onFrame(index, frame);
+                    public void onFrame(int index, Bitmap frame, @StringRes int failure) {
+                        VideoPreview.this.onFrame(index, frame, failure);
                     }
 
                     @Override
@@ -325,7 +327,8 @@ final class VideoPreview {
             mMessage.setText(mError);
             mMessage.setVisibility(View.VISIBLE);
         } else if (missing) {
-            mMessage.setText(R.string.phone_preview_frame_unavailable);
+            int failure = mFailures[mSelected];
+            mMessage.setText(failure != 0 ? failure : R.string.phone_preview_frame_unavailable);
             mMessage.setVisibility(View.VISIBLE);
         } else {
             mMessage.setVisibility(View.GONE);
@@ -351,8 +354,9 @@ final class VideoPreview {
         showSelected();
     }
 
-    private void onFrame(int index, Bitmap frame) {
+    private void onFrame(int index, Bitmap frame, @StringRes int failure) {
         mBitmaps[index] = frame;
+        mFailures[index] = failure;
         mStates[index] = frame != null ? FrameScaleView.STATE_READY : FrameScaleView.STATE_FAILED;
         mScale.setState(index, mStates[index]);
         if (frame != null && !mHasFrameAspect && frame.getWidth() > 0 && frame.getHeight() > 0) {
@@ -372,6 +376,11 @@ final class VideoPreview {
     @VisibleForTesting
     int getSelected() {
         return mSelected;
+    }
+
+    @VisibleForTesting
+    boolean isTouchDriven() {
+        return mTouchDriven;
     }
 
     // ------------------------------------------------------------------------------------------
@@ -515,6 +524,13 @@ final class VideoPreview {
         @Override
         public boolean shouldDelayChildPressedState() {
             return false;
+        }
+
+        @Override
+        public boolean onHoverEvent(MotionEvent event) {
+            super.onHoverEvent(event);
+            // hovering (mouse, explore by touch) reaches the card, never the screen behind
+            return true;
         }
     }
 }

@@ -86,13 +86,16 @@ VideoPreview (card, blur, layout) <── PreviewFrames (extraction + cache) ─
   finger's x position is shown until release. Lifting that finger, a cancelled gesture, Back,
   pause or focus loss close it at once; the rest of the gesture never reaches the list. Without
   a finger (accessibility action, keyboard) the frames change by themselves; a tap, a key or
-  Back closes it. While it is shown, no touch, key or wheel event reaches the screen behind.
+  Back closes it. While it is shown, no touch, key, wheel or hover event reaches the screen
+  behind; system keys (volume, media) keep working.
 - A frame that cannot be decoded is reported as such, never replaced by another frame under
   its time code; while a frame loads, the previous one is dimmed under a spinner.
 - `PreviewFrames` extracts 20 frames, each in the middle of an equal part of the video, with
   two connections, nearest-needed frame first. Before the first connection the file is looked
-  up through FileCoreLibrary (`SourceAccess.statNow`): the retriever reports an unreachable
-  server, bad credentials or a missing file only as missing frames after its timeouts. Frames
+  up through FileCoreLibrary (`SourceAccess.statNow`, SMB and FTP; SFTP only gets its key
+  checked, FileCoreLibrary misreports its other failures): the retriever reports an
+  unreachable server, bad credentials or a missing file only as missing frames after its
+  timeouts. Frames that could not be obtained show their reason on the card. Frames
   are cached next to the thumbnails (same 256 MB limit, same "Clear cache") and the duration
   found goes to the media info cache, so a cached video needs no connection. Three failed
   extractions in a row (six once some succeeded) give up the remaining frames; closing the card

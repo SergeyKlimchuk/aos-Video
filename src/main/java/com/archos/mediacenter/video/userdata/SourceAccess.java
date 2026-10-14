@@ -294,6 +294,10 @@ public final class SourceAccess {
             verifyHostKey(source);
             MetaFile2 file = MetaFile2Factory.getMetaFileForUrl(source.buildUri(ref, false));
             if (file == null) throw new FileNotFoundException(ref.path);
+            // jcifs-ng (default SMB client) describes a missing path instead of failing
+            if (source.protocol == SourceProtocol.SMB && !file.isFile() && !file.isDirectory()) {
+                throw new FileNotFoundException(ref.path);
+            }
             store.setStatus(source.id, NetworkSource.Status.AVAILABLE);
             return file;
         } catch (Exception e) {

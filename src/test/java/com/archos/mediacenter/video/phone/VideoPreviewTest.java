@@ -28,6 +28,7 @@ import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -56,7 +57,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -120,6 +123,7 @@ public class VideoPreviewTest {
         long duration = -1;
         final List<Integer> ready = new ArrayList<>();
         final List<Integer> failed = new ArrayList<>();
+        final Map<Integer, Integer> failures = new HashMap<>();
         int error;
 
         @Override
@@ -128,8 +132,9 @@ public class VideoPreviewTest {
         }
 
         @Override
-        public void onFrame(int index, Bitmap frame) {
+        public void onFrame(int index, Bitmap frame, int failure) {
             (frame != null ? ready : failed).add(index);
+            if (frame == null) failures.put(index, failure);
         }
 
         @Override
@@ -216,6 +221,18 @@ public class VideoPreviewTest {
         int[] location = new int[2];
         view.getLocationInWindow(location);
         return new float[]{location[0] + view.getWidth() / 2f, location[1] + view.getHeight() / 2f};
+    }
+
+    /** Counts the clicks of a row, instead of opening the player. */
+    private static AtomicInteger countClicks(View row) {
+        AtomicInteger clicks = new AtomicInteger();
+        row.setOnClickListener(v -> clicks.incrementAndGet());
+        return clicks;
+    }
+
+    private static void tap(PhoneMainActivity activity, float[] at) {
+        activity.dispatchTouchEvent(touch(MotionEvent.ACTION_DOWN, at[0], at[1]));
+        activity.dispatchTouchEvent(touch(MotionEvent.ACTION_UP, at[0], at[1]));
     }
 
     private static KeyEvent key(int action, int code, long downTime, int repeat) {
@@ -340,6 +357,34 @@ public class VideoPreviewTest {
         assertEquals(PreviewFrames.COUNT - 5, recorder.failed.size());
         // three misses in a row, plus the frame the other connection was already reading: not fifteen
         assertTrue("extractions: " + mExtracted.get(), mExtracted.get() <= 4);
+        // the cached frames stay browsable; the others say why they are missing
+        assertEquals(0, recorder.error);
+        for (int i = 5; i < PreviewFrames.COUNT; i++) {
+            int failure = recorder.failures.get(i);
+            assertTrue(failure == R.string.phone_preview_error_read || failure == R.string.phone_preview_frame_unavailable);
+        }
+    }
+
+    @Test
+    public void unreachableServerAfterCachedFramesGivesItsReasonForTheOthers() throws Exception {
+        NetworkSource source = addSource();
+        MediaRef ref = new MediaRef(source.id, "/Video/Film.mkv");
+        new PreviewFrames(mContext, source, ref, 1_000_000L, 1234L, DURATION, new Recorder()).start();
+        idle();
+        ThumbnailLoader cache = ThumbnailLoader.get(mContext);
+        String key = cache.previewKey(ref, 1_000_000L, 1234L);
+        for (int i = 5; i < PreviewFrames.COUNT; i++) {
+            assertTrue(cache.previewFile(key, PreviewFrames.COUNT, i).delete());
+        }
+        PreviewFrames.sProbe = (context, s, r) -> {
+            throw new java.io.FileNotFoundException(r.path);
+        };
+        Recorder recorder = new Recorder();
+        new PreviewFrames(mContext, source, ref, 1_000_000L, 1234L, DURATION, recorder).start();
+        idle();
+        assertEquals(5, recorder.ready.size());
+        int notFound = com.archos.mediacenter.video.userdata.NetworkError.Kind.NOT_FOUND.messageRes;
+        for (int i = 5; i < PreviewFrames.COUNT; i++) assertEquals(notFound, (int) recorder.failures.get(i));
     }
 
     @Test
@@ -397,9 +442,8 @@ public class VideoPreviewTest {
                     idle();
                     RecyclerView list = (RecyclerView) findVisible(activity.getWindow().getDecorView(), R.id.list);
                     assertNotNull(list);
-                    list.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
-                            View.MeasureSpec.makeMeasureSpec(1920, View.MeasureSpec.EXACTLY));
-                    list.layout(0, 0, 1080, 1920);
+                    // laid out by the window itself, so that touches land where the rows are
+                    assertTrue(list.getChildCount() > 1);
                     View title = findVisible(list, R.id.video_title);
                     assertNotNull(title);
                     View row = list.findContainingItemView(title);
@@ -409,6 +453,12 @@ public class VideoPreviewTest {
                 }
             });
         }
+    }
+
+    /** The video row as laid out now (opening the card lays the window out again). */
+    private static View currentRow(PhoneMainActivity activity) {
+        RecyclerView list = (RecyclerView) findVisible(activity.getWindow().getDecorView(), R.id.list);
+        return list.findContainingItemView(findVisible(list, R.id.video_title));
     }
 
     private static View findVisible(View root, int id) {
@@ -468,13 +518,20 @@ public class VideoPreviewTest {
             assertTrue(row.performLongClick());
             idle();
             assertNotNull(activity.getPreview());
-            float[] tap = centre(row);
-            activity.dispatchTouchEvent(touch(MotionEvent.ACTION_DOWN, tap[0], tap[1]));
+            assertFalse(activity.getPreview().isTouchDriven());
+            View shown = currentRow(activity);
+            AtomicInteger clicks = countClicks(shown);
+            float[] onRow = centre(shown);
+            activity.dispatchTouchEvent(touch(MotionEvent.ACTION_DOWN, onRow[0], onRow[1]));
             assertNotNull(activity.getPreview());
-            activity.dispatchTouchEvent(touch(MotionEvent.ACTION_UP, tap[0], tap[1]));
+            activity.dispatchTouchEvent(touch(MotionEvent.ACTION_UP, onRow[0], onRow[1]));
             assertNull(activity.getPreview());
             idle();
-            assertNull(shadowOf(activity).getNextStartedActivity());
+            assertEquals(0, clicks.get());
+            // the same tap without a card does reach the row (a click is posted)
+            tap(activity, onRow);
+            idle();
+            assertEquals(1, clicks.get());
         });
     }
 
@@ -497,23 +554,53 @@ public class VideoPreviewTest {
     @Test
     public void keysCloseThePreviewWithoutReachingTheListBehind() throws Exception {
         withFavoriteRow((activity, row) -> {
-            // keyboard long press of Enter on the row
+            AtomicInteger clicks = countClicks(row);
+            assertTrue(row.requestFocusFromTouch());
+            // keyboard long press of Enter on the focused row
             long down = SystemClock.uptimeMillis();
             activity.dispatchKeyEvent(key(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER, down, 0));
-            assertTrue(row.performLongClick());
-            idle();
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(ViewConfiguration.getLongPressTimeout() + 50));
             assertNotNull(activity.getPreview());
-            // auto repeat and release of that same key keep the card open
+            assertFalse(activity.getPreview().isTouchDriven());
+            // auto repeat and release of that same key keep the card open and do not click
             activity.dispatchKeyEvent(key(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER, down, 1));
             activity.dispatchKeyEvent(key(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER, down, 0));
             assertNotNull(activity.getPreview());
+            assertEquals(0, clicks.get());
             // the next Enter closes it and is not a click on the row behind
             long next = SystemClock.uptimeMillis();
             activity.dispatchKeyEvent(key(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER, next, 0));
             assertNull(activity.getPreview());
             activity.dispatchKeyEvent(key(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER, next, 0));
+            assertEquals(0, clicks.get());
+            // the same Enter without a card does click the row
+            long again = SystemClock.uptimeMillis();
+            activity.dispatchKeyEvent(key(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER, again, 0));
+            activity.dispatchKeyEvent(key(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER, again, 0));
+            assertEquals(1, clicks.get());
+        });
+    }
+
+    @Test
+    public void wheelDoesNotReachTheListBehind() throws Exception {
+        withFavoriteRow((activity, row) -> {
+            assertTrue(row.performLongClick());
             idle();
-            assertNull(shadowOf(activity).getNextStartedActivity());
+            MotionEvent.PointerProperties[] properties = {new MotionEvent.PointerProperties()};
+            properties[0].toolType = MotionEvent.TOOL_TYPE_MOUSE;
+            MotionEvent.PointerCoords[] coords = {new MotionEvent.PointerCoords()};
+            float[] onRow = centre(row);
+            coords[0].x = onRow[0];
+            coords[0].y = onRow[1];
+            coords[0].setAxisValue(MotionEvent.AXIS_VSCROLL, -1f);
+            long now = SystemClock.uptimeMillis();
+            MotionEvent wheel = MotionEvent.obtain(now, now, MotionEvent.ACTION_SCROLL, 1, properties, coords, 0, 0,
+                    1, 1, 0, 0, InputDevice.SOURCE_MOUSE, 0);
+            AtomicInteger reached = new AtomicInteger();
+            ((View) row.getParent()).setOnGenericMotionListener((v, e) -> reached.incrementAndGet() > 0);
+            assertTrue(activity.dispatchGenericMotionEvent(wheel));
+            assertEquals(0, reached.get());
+            assertNotNull(activity.getPreview());
         });
     }
 
@@ -536,10 +623,34 @@ public class VideoPreviewTest {
             activity.dispatchTouchEvent(touches(MotionEvent.ACTION_POINTER_UP
                     | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT), elsewhere, new float[]{5000, onRow[1]}));
             assertNull(activity.getPreview());
-            // the rest of that gesture does not reach the list
+            // the rest of that gesture reaches nothing in the window
+            AtomicInteger reached = new AtomicInteger();
+            activity.getWindow().getDecorView().setOnTouchListener((v, e) -> reached.incrementAndGet() > 0);
+            activity.dispatchTouchEvent(touches(MotionEvent.ACTION_MOVE, elsewhere));
             activity.dispatchTouchEvent(touches(MotionEvent.ACTION_UP, elsewhere));
+            assertEquals(0, reached.get());
+        });
+    }
+
+    @Test
+    public void aFingerDriftingJustOffTheRowStillDrivesThePreview() throws Exception {
+        withFavoriteRow((activity, row) -> {
+            int[] location = new int[2];
+            row.getLocationInWindow(location);
+            // below the bottom edge by less than the touch slop
+            float x = location[0] + row.getWidth() / 2f;
+            float y = location[1] + row.getHeight() + ViewConfiguration.get(activity).getScaledTouchSlop() / 2f;
+            activity.dispatchTouchEvent(touch(MotionEvent.ACTION_DOWN, x, y - row.getHeight() / 2f));
+            activity.dispatchTouchEvent(touch(MotionEvent.ACTION_MOVE, x, y));
+            assertTrue(row.performLongClick());
             idle();
-            assertNull(shadowOf(activity).getNextStartedActivity());
+            VideoPreview preview = activity.getPreview();
+            assertNotNull(preview);
+            assertTrue(preview.isTouchDriven());
+            activity.dispatchTouchEvent(touch(MotionEvent.ACTION_MOVE, 5000, y));
+            assertEquals(PreviewFrames.COUNT - 1, preview.getSelected());
+            activity.dispatchTouchEvent(touch(MotionEvent.ACTION_UP, 5000, y));
+            assertNull(activity.getPreview());
         });
     }
 
