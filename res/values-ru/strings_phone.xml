@@ -193,6 +193,8 @@
         <item quantity="other">%d кадра предпросмотра</item>
     </plurals>
     <string name="phone_preview_hint_auto">Удерживайте — кадры меняются автоматически</string>
+    <string name="phone_preview_hint_auto_no_touch">Кадры меняются автоматически</string>
+    <string name="phone_preview_frame_unavailable">Этот кадр не удалось декодировать</string>
     <string name="phone_preview_hint_swipe">Проведите влево/вправо — выбор кадра по позиции</string>
     <string name="phone_preview_hint_release">Отпустите палец — предпросмотр закроется</string>
     <string name="phone_preview_hint_tap">Коснитесь экрана, чтобы закрыть предпросмотр</string>

@@ -565,9 +565,9 @@ public class BrowserFragment extends Fragment implements PhoneListAdapter.Callba
     }
 
     @Override
-    public void onVideoPreview(ListItems.VideoItem item, Bitmap placeholder) {
+    public void onVideoPreview(ListItems.VideoItem item, View row, Bitmap placeholder) {
         PhoneMainActivity main = PhoneUi.main(this);
-        if (main != null) main.showPreview(item, placeholder);
+        if (main != null) main.showPreview(item, row, placeholder);
     }
 
     @Override

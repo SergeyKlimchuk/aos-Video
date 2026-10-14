@@ -26,6 +26,7 @@ import com.archos.mediacenter.video.userdata.MediaRef;
 import com.archos.mediacenter.video.userdata.NetworkError;
 import com.archos.mediacenter.video.userdata.NetworkSource;
 import com.archos.mediacenter.video.userdata.SourceAccess;
+import com.archos.mediacenter.video.userdata.UserDataStore;
 import com.archos.medialib.IMediaMetadataRetriever;
 import com.archos.medialib.MediaFactory;
 
@@ -46,12 +47,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <ul>
  * <li>{@link #COUNT} frames, each in the middle of an equal part of the video: neither the black
  *     first frame nor the very end;</li>
+ * <li>the file is looked up first: the retriever reports an unreachable server or a missing file
+ *     only as missing frames after its timeouts, FileCoreLibrary tells why at once;</li>
  * <li>frames extracted once come back from the thumbnail disk cache, without any connection when
  *     the duration is already known;</li>
  * <li>{@link #CONNECTIONS} connections at most, each with its own retriever; the frame nearest to
  *     what the card needs next is always extracted first;</li>
  * <li>{@link #cancel()} aborts the extraction in progress (the native retriever supports a release
- *     from another thread). Nothing but the frame cache is written: no history, no position.</li>
+ *     from another thread). Only the technical caches are written (frames, duration): no history,
+ *     no position.</li>
  * </ul>
  */
 final class PreviewFrames {
@@ -62,8 +66,10 @@ final class PreviewFrames {
     private static final int CONNECTIONS = 2;
     /** The Android retriever (fallback) returns full resolution frames. */
     private static final int MAX_FRAME_WIDTH = 960;
-    /** Failed extractions before any success after which the file is reported unreadable. */
+    /** Failed extractions in a row after which the remaining frames are given up. */
     private static final int MAX_MISSES = 3;
+    /** Same once some frames could be extracted: a few positions may be undecodable. */
+    private static final int MAX_MISSES_AFTER_SUCCESS = 6;
 
     private static final int PENDING = 0;
     private static final int LOADING = 1;
@@ -96,8 +102,16 @@ final class PreviewFrames {
         Extractor create(Context context);
     }
 
+    /** Checks that the file can be reached; throws the reason otherwise. */
+    interface Probe {
+        void check(Context context, NetworkSource source, MediaRef ref) throws Exception;
+    }
+
     @VisibleForTesting
     static ExtractorFactory sFactory = RetrieverExtractor::new;
+
+    @VisibleForTesting
+    static Probe sProbe = SourceAccess::statNow;
 
     @VisibleForTesting
     static Executor sExecutor = Executors.newCachedThreadPool(r -> {
@@ -112,6 +126,8 @@ final class PreviewFrames {
     private final Listener mListener;
     private final ThumbnailLoader mCache;
     private final String mCacheKey;
+    private final long mSize;
+    private final long mModified;
     private final Handler mMain = new Handler(Looper.getMainLooper());
 
     private final Object mLock = new Object();
@@ -123,6 +139,7 @@ final class PreviewFrames {
     private long mDuration;
     private int mDelivered;
     private int mFinished;
+    private int mExtracted;
     private int mMisses;
     private boolean mOthersStarted;
     private boolean mCancelled;
@@ -134,6 +151,14 @@ final class PreviewFrames {
         mRef = ref;
         mListener = listener;
         mCache = ThumbnailLoader.get(mContext);
+        // an unknown modification time is completed as for the list thumbnails
+        UserDataStore.MediaInfo info = modified > 0 ? null : UserDataStore.get(mContext).getMediaInfo(ref);
+        if (info != null && (size <= 0 || info.size == size)) {
+            size = info.size;
+            modified = info.modified;
+        }
+        mSize = size;
+        mModified = modified;
         mCacheKey = mCache.previewKey(ref, size, modified);
         mDuration = knownDurationMs > 0 ? knownDurationMs : -1;
     }
@@ -197,7 +222,7 @@ final class PreviewFrames {
                 duration = mDuration;
             }
             if (!first || duration <= 0) {
-                extractor = open();
+                extractor = open(first);
                 if (extractor == null) return;
                 long fileDuration = extractor.open(uri(), duration <= 0);
                 if (duration <= 0) {
@@ -209,6 +234,8 @@ final class PreviewFrames {
                         abort(-1, R.string.phone_preview_error_read);
                         return;
                     }
+                    // technical cache: the next preview of this file needs no connection
+                    UserDataStore.get(mContext).putMediaInfo(mRef, mSize, mModified, duration);
                     final long d = duration;
                     post(() -> mListener.onDuration(d));
                 }
@@ -219,14 +246,14 @@ final class PreviewFrames {
                 Bitmap frame = mCache.readPreviewFrame(file);
                 if (frame == null) {
                     if (extractor == null) {
-                        extractor = open();
+                        extractor = open(first);
                         if (extractor == null) return;
                         extractor.open(uri(), false);
                         startOthers();
                     }
                     frame = fit(extractor.frameAt(timeOf(index, duration)));
                     if (frame != null && !isCancelled()) mCache.savePreviewFrame(file, frame);
-                    if (frame == null && giveUp()) {
+                    if (giveUp(frame != null)) {
                         abort(index, R.string.phone_preview_error_read);
                         return;
                     }
@@ -252,12 +279,18 @@ final class PreviewFrames {
     }
 
     /**
-     * True when the first frames all fail: the file cannot be decoded or the server does not
-     * answer, and every other frame would wait for the same timeout.
+     * True when extractions keep failing (frames read from the cache do not count): the file
+     * cannot be decoded or the server stopped answering, and every other frame would wait for
+     * the same timeout.
      */
-    private boolean giveUp() {
+    private boolean giveUp(boolean extracted) {
         synchronized (mLock) {
-            return mDelivered == 0 && ++mMisses >= MAX_MISSES;
+            if (extracted) {
+                mExtracted++;
+                mMisses = 0;
+                return false;
+            }
+            return ++mMisses >= (mExtracted == 0 ? MAX_MISSES : MAX_MISSES_AFTER_SUCCESS);
         }
     }
 
@@ -269,10 +302,16 @@ final class PreviewFrames {
         for (int i = 1; i < CONNECTIONS; i++) sExecutor.execute(() -> run(false));
     }
 
-    /** A new connection, or null when the preview is already closed. */
-    private Extractor open() throws Exception {
+    /**
+     * A new connection, or null when the preview is already closed.
+     *
+     * @param probe look the file up first (also checks the SFTP key): an unreachable server, bad
+     *              credentials or a missing file then fail at once with their own message
+     */
+    private Extractor open(boolean probe) throws Exception {
+        if (probe) sProbe.check(mContext, mSource, mRef);
         // FileCoreLibrary accepts any SFTP key: check it like every other connection of the app
-        if (!SourceAccess.canConnectDirectly(mSource)) SourceAccess.verifyHostKey(mSource);
+        else if (!SourceAccess.canConnectDirectly(mSource)) SourceAccess.verifyHostKey(mSource);
         Extractor extractor = sFactory.create(mContext);
         synchronized (mLock) {
             if (!mCancelled) {

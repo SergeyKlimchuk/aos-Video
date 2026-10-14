@@ -16,6 +16,7 @@
     android:paddingBottom="@dimen/nova_space_m">
 
     <View
+        android:id="@+id/preview_handle"
         android:layout_width="36dp"
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
@@ -159,6 +160,7 @@
                 android:layout_weight="1"
                 android:drawablePadding="10dp"
                 android:gravity="center_vertical"
+                android:hyphenationFrequency="normal"
                 android:text="@string/phone_preview_hint_auto"
                 android:textAppearance="@style/NovaPhone.Text.PreviewHint"
                 app:drawableStartCompat="@drawable/ic_phone_preview_auto"
@@ -179,6 +181,7 @@
                 android:layout_weight="1"
                 android:drawablePadding="10dp"
                 android:gravity="center_vertical"
+                android:hyphenationFrequency="normal"
                 android:text="@string/phone_preview_hint_swipe"
                 android:textAppearance="@style/NovaPhone.Text.PreviewHint"
                 app:drawableStartCompat="@drawable/ic_phone_preview_swipe"

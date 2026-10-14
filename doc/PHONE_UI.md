@@ -74,20 +74,28 @@ PhoneMainActivity.dispatchTouchEvent ──> VideoPreview.onTouchEvent   (whole 
 VideoPreview (card, blur, layout) <── PreviewFrames (extraction + cache) ──> MediaLib retriever
 ```
 
-- `VideoPreview` adds a full-window layer to `android.R.id.content` and blurs the app screen
-  behind it (`RenderEffect`, Android 12+; a dim scrim below). The card takes ~94% of the width
-  inside the system bars, its frame follows the video aspect ratio and the remaining height
-  (narrower card rather than black bars; hints dropped on short screens), and it is centred
-  unless the finger would cover the frame: it then moves up so the frame ends above the finger.
-- The finger of the long press keeps driving it: at rest the frames change every 700 ms (only
-  to frames already extracted); past the touch slop horizontally, the frame under the finger's
-  x position is shown until release. Lifting the finger, a cancelled gesture, Back, pause or
-  focus loss close it at once; the rest of the gesture never reaches the list. Without a finger
-  (accessibility action, keyboard) the frames change by themselves and the next touch closes it.
+- `VideoPreview` adds a full-window layer to `android.R.id.content`, above anything raised in
+  it (snackbars), and blurs everything behind it (`RenderEffect`, Android 12+; a dim scrim
+  below), which is also hidden from accessibility. The card takes ~94% of the width inside the
+  system bars; its frame follows the video aspect ratio within the height left (letterboxed
+  beyond) and the card never leaves the window: short windows drop the hints, then the title,
+  then the scale label. It is centred unless the finger would cover the frame: it then moves up
+  so the frame ends above the finger.
+- The finger on the long-pressed row keeps driving it: at rest the frames change every 700 ms
+  (only to frames already extracted); past the touch slop horizontally, the frame under the
+  finger's x position is shown until release. Lifting that finger, a cancelled gesture, Back,
+  pause or focus loss close it at once; the rest of the gesture never reaches the list. Without
+  a finger (accessibility action, keyboard) the frames change by themselves; a tap, a key or
+  Back closes it. While it is shown, no touch, key or wheel event reaches the screen behind.
+- A frame that cannot be decoded is reported as such, never replaced by another frame under
+  its time code; while a frame loads, the previous one is dimmed under a spinner.
 - `PreviewFrames` extracts 20 frames, each in the middle of an equal part of the video, with
-  two connections, nearest-needed frame first. Frames are cached next to the thumbnails (same
-  256 MB limit, same "Clear cache"); with a known duration a cached video needs no connection.
-  Three failed frames before any success report the file as unreadable; closing the card
+  two connections, nearest-needed frame first. Before the first connection the file is looked
+  up through FileCoreLibrary (`SourceAccess.statNow`): the retriever reports an unreachable
+  server, bad credentials or a missing file only as missing frames after its timeouts. Frames
+  are cached next to the thumbnails (same 256 MB limit, same "Clear cache") and the duration
+  found goes to the media info cache, so a cached video needs no connection. Three failed
+  extractions in a row (six once some succeeded) give up the remaining frames; closing the card
   releases the retrievers from a background thread, which aborts the native extraction.
 - Nothing is played and nothing is written to the history or the positions.
 

@@ -58,7 +58,7 @@ final class PhoneListAdapter extends ListAdapter<ListItems.Item, RecyclerView.Vi
         void onVideoMenu(ListItems.VideoItem item, View anchor);
 
         /** Long press: hold-to-preview. The placeholder is the row thumbnail, may be null. */
-        void onVideoPreview(ListItems.VideoItem item, Bitmap placeholder);
+        void onVideoPreview(ListItems.VideoItem item, View row, Bitmap placeholder);
 
         boolean hasVideoMenu();
 
@@ -203,7 +203,7 @@ final class PhoneListAdapter extends ListAdapter<ListItems.Item, RecyclerView.Vi
                 more.setVisibility(View.GONE);
             }
             itemView.setOnLongClickListener(v -> {
-                mCallbacks.onVideoPreview(item, thumbnailBitmap());
+                mCallbacks.onVideoPreview(item, itemView, thumbnailBitmap());
                 return true;
             });
             ViewCompat.replaceAccessibilityAction(itemView, AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_LONG_CLICK,

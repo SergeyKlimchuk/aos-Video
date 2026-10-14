@@ -18,8 +18,10 @@ import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.View;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
@@ -62,12 +64,17 @@ public class PhoneMainActivity extends PhoneBaseActivity {
 
     // Hold-to-preview: the finger that made the long press keeps driving the card
     private VideoPreview mPreview;
-    private boolean mTouchDown;
-    private int mTouchPointerId;
-    private float mTouchX;
-    private float mTouchY;
+    /** Copy of the last touch event of the window: finds the finger of a long press. */
+    private MotionEvent mLastTouch;
     /** The rest of a gesture that closed the preview is not delivered to the screen. */
     private boolean mSwallowGesture;
+    /** Key held right now, if any, and the one whose long press opened the preview. */
+    private int mHeldKey = KeyEvent.KEYCODE_UNKNOWN;
+    private long mHeldKeyDownTime;
+    private int mOpeningKey = KeyEvent.KEYCODE_UNKNOWN;
+    private long mOpeningKeyDownTime;
+    /** Release of a key that closed the preview, not delivered to the screen. */
+    private int mSwallowKey = KeyEvent.KEYCODE_UNKNOWN;
 
     private final ActivityResultLauncher<Intent> mSourceForm = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -160,37 +167,82 @@ public class PhoneMainActivity extends PhoneBaseActivity {
     @Override
     protected void onDestroy() {
         dismissPreview();
+        if (mLastTouch != null) {
+            mLastTouch.recycle();
+            mLastTouch = null;
+        }
         super.onDestroy();
     }
+
+    // ------------------------------------------------------------------------------------------
+    // Input while the preview is shown: nothing reaches the screen behind it
+    // ------------------------------------------------------------------------------------------
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         int action = ev.getActionMasked();
-        if (action == MotionEvent.ACTION_DOWN) {
-            mSwallowGesture = false;
-            mTouchDown = true;
-            mTouchPointerId = ev.getPointerId(0);
-        }
-        if (mTouchDown) {
-            int index = ev.findPointerIndex(mTouchPointerId);
-            if (index >= 0) {
-                mTouchX = ev.getX(index);
-                mTouchY = ev.getY(index);
-            }
-        }
-        boolean ends = action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL;
-        if (ends) mTouchDown = false;
+        if (action == MotionEvent.ACTION_DOWN) mSwallowGesture = false;
+        if (mLastTouch != null) mLastTouch.recycle();
+        mLastTouch = MotionEvent.obtain(ev);
         if (mPreview != null) {
-            // the card takes the whole gesture; the screen behind sees none of it
             mPreview.onTouchEvent(ev);
-            if (mPreview == null && !ends) mSwallowGesture = true;
             return true;
         }
         if (mSwallowGesture) {
-            if (ends) mSwallowGesture = false;
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) mSwallowGesture = false;
             return true;
         }
         return super.dispatchTouchEvent(ev);
+    }
+
+    private boolean isFingerDown() {
+        if (mLastTouch == null) return false;
+        int action = mLastTouch.getActionMasked();
+        return action != MotionEvent.ACTION_UP && action != MotionEvent.ACTION_CANCEL;
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        int code = event.getKeyCode();
+        int action = event.getAction();
+        if (action == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+            mHeldKey = code;
+            mHeldKeyDownTime = event.getDownTime();
+        } else if (action == KeyEvent.ACTION_UP && code == mHeldKey) {
+            mHeldKey = KeyEvent.KEYCODE_UNKNOWN;
+        }
+        if (mPreview != null) {
+            if (code == mOpeningKey && event.getDownTime() == mOpeningKeyDownTime) {
+                // the key whose long press opened the card: its repeats go nowhere, its release
+                // lets the row clear its pressed state (a long press is never followed by a click)
+                if (action != KeyEvent.ACTION_UP) return true;
+                mOpeningKey = KeyEvent.KEYCODE_UNKNOWN;
+                return super.dispatchKeyEvent(event);
+            }
+            // Back closes the card (mBack); the volume keeps working
+            if (code == KeyEvent.KEYCODE_BACK || code == KeyEvent.KEYCODE_VOLUME_UP
+                    || code == KeyEvent.KEYCODE_VOLUME_DOWN || code == KeyEvent.KEYCODE_VOLUME_MUTE) {
+                return super.dispatchKeyEvent(event);
+            }
+            // any other key closes it and goes no further (Enter would play the row behind)
+            if (action == KeyEvent.ACTION_DOWN) {
+                mSwallowKey = code;
+                dismissPreview();
+            }
+            return true;
+        }
+        if (code == mSwallowKey) {
+            if (action == KeyEvent.ACTION_UP) mSwallowKey = KeyEvent.KEYCODE_UNKNOWN;
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override
+    public boolean dispatchGenericMotionEvent(MotionEvent ev) {
+        // mouse wheel, hover: not for the hidden list
+        if (mPreview != null) return true;
+        return super.dispatchGenericMotionEvent(ev);
     }
 
     private static String tag(int index) {
@@ -277,17 +329,43 @@ public class PhoneMainActivity extends PhoneBaseActivity {
      * Hold-to-preview of a video row, called from its long press: the finger still down drives
      * the card and lifting it closes the card. Nothing is played, the history is untouched.
      */
-    void showPreview(ListItems.VideoItem item, Bitmap placeholder) {
+    void showPreview(ListItems.VideoItem item, View row, Bitmap placeholder) {
         if (item.source == null || isFinishing()) return;
         dismissPreview();
-        boolean touch = mTouchDown;
-        mPreview = VideoPreview.show(this, item, placeholder, touch, mTouchPointerId, mTouchX, mTouchY, preview -> {
-            if (mPreview == preview) mPreview = null;
+        // the finger of the long press is the one on the row (another may rest elsewhere)
+        int pointerId = -1;
+        float x = 0;
+        float y = 0;
+        if (isFingerDown() && row != null) {
+            MotionEvent last = mLastTouch;
+            int[] location = new int[2];
+            row.getLocationInWindow(location);
+            int lifted = last.getActionMasked() == MotionEvent.ACTION_POINTER_UP ? last.getActionIndex() : -1;
+            for (int i = 0; i < last.getPointerCount(); i++) {
+                float px = last.getX(i);
+                float py = last.getY(i);
+                if (i != lifted && px >= location[0] && px < location[0] + row.getWidth()
+                        && py >= location[1] && py < location[1] + row.getHeight()) {
+                    pointerId = last.getPointerId(i);
+                    x = px;
+                    y = py;
+                    break;
+                }
+            }
+        }
+        boolean touch = pointerId >= 0;
+        mOpeningKey = touch ? KeyEvent.KEYCODE_UNKNOWN : mHeldKey;
+        mOpeningKeyDownTime = mHeldKeyDownTime;
+        mPreview = VideoPreview.show(this, item, placeholder, touch, pointerId, x, y, preview -> {
+            if (mPreview != preview) return;
+            mPreview = null;
+            // what is left of a gesture that closed the card never reaches the screen
+            if (isFingerDown()) mSwallowGesture = true;
         });
-        if (touch) {
+        if (isFingerDown()) {
             // the row and its list stop tracking this gesture: no click, no scroll, no tab swipe
             long now = SystemClock.uptimeMillis();
-            MotionEvent cancel = MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, mTouchX, mTouchY, 0);
+            MotionEvent cancel = MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, x, y, 0);
             super.dispatchTouchEvent(cancel);
             cancel.recycle();
         }

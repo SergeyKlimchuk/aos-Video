@@ -196,6 +196,8 @@
         <item quantity="other">%d preview frames</item>
     </plurals>
     <string name="phone_preview_hint_auto">Hold — frames change automatically</string>
+    <string name="phone_preview_hint_auto_no_touch">Frames change automatically</string>
+    <string name="phone_preview_frame_unavailable">This frame cannot be decoded</string>
     <string name="phone_preview_hint_swipe">Slide left/right — pick a frame by position</string>
     <string name="phone_preview_hint_release">Release your finger — the preview closes</string>
     <string name="phone_preview_hint_tap">Touch the screen to close the preview</string>

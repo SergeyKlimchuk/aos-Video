@@ -281,24 +281,30 @@ public final class SourceAccess {
     /** Checks that a file still exists before playing it; returns its metadata. */
     public static Future<?> stat(final Context context, final NetworkSource source, final MediaRef ref,
                                  final Callback<MetaFile2> callback) {
+        return submit(() -> statNow(context, source, ref), callback);
+    }
+
+    /**
+     * {@link #stat} on the calling (background) thread: the file, or the exception telling why
+     * it cannot be reached. Updates the source status like every connection of the app.
+     */
+    public static MetaFile2 statNow(Context context, NetworkSource source, MediaRef ref) throws Exception {
         final UserDataStore store = UserDataStore.get(context);
-        return submit(() -> {
-            try {
-                verifyHostKey(source);
-                MetaFile2 file = MetaFile2Factory.getMetaFileForUrl(source.buildUri(ref, false));
-                if (file == null) throw new FileNotFoundException(ref.path);
+        try {
+            verifyHostKey(source);
+            MetaFile2 file = MetaFile2Factory.getMetaFileForUrl(source.buildUri(ref, false));
+            if (file == null) throw new FileNotFoundException(ref.path);
+            store.setStatus(source.id, NetworkSource.Status.AVAILABLE);
+            return file;
+        } catch (Exception e) {
+            NetworkError error = NetworkError.of(e);
+            if (!(e instanceof HostKeyException) && error.isSourceFailure()) {
+                store.setStatus(source.id, NetworkSource.Status.UNAVAILABLE);
+            } else if (error.kind == NetworkError.Kind.NOT_FOUND || error.kind == NetworkError.Kind.ACCESS_DENIED) {
                 store.setStatus(source.id, NetworkSource.Status.AVAILABLE);
-                return file;
-            } catch (Exception e) {
-                NetworkError error = NetworkError.of(e);
-                if (!(e instanceof HostKeyException) && error.isSourceFailure()) {
-                    store.setStatus(source.id, NetworkSource.Status.UNAVAILABLE);
-                } else if (error.kind == NetworkError.Kind.NOT_FOUND || error.kind == NetworkError.Kind.ACCESS_DENIED) {
-                    store.setStatus(source.id, NetworkSource.Status.AVAILABLE);
-                }
-                throw e;
             }
-        }, callback);
+            throw e;
+        }
     }
 
     /** Runs an arbitrary blocking job on the network pool (thumbnails use their own pool). */

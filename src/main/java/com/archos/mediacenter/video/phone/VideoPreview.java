@@ -49,8 +49,8 @@ import com.archos.mediacenter.video.userdata.UserDataStore;
  * change by themselves; once it slides horizontally, the frame at the finger's position is shown;
  * lifting it closes the card at once. Nothing is played and nothing is written to the history.</p>
  *
- * <p>Without a touch (accessibility action, keyboard), the frames change by themselves and the
- * next touch or Back closes the card.</p>
+ * <p>Without a touch (accessibility action, keyboard), the frames change by themselves; a tap, a
+ * key or Back closes the card. The activity keeps every input away from the screen behind.</p>
  */
 final class VideoPreview {
 
@@ -67,13 +67,14 @@ final class VideoPreview {
     private static final int INSET_TYPES = WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout();
 
     private final ViewGroup mHost;
-    /** The app screen behind the card (blurred). */
-    private final View mScreen;
-    private final int mScreenAccessibility;
+    /** Everything behind the card (app screen, snackbar): blurred and hidden from accessibility. */
+    private final View[] mBehind;
+    private final int[] mBehindAccessibility;
     private final Overlay mOverlay;
     private final ImageView mImage;
     private final View mLoading;
     private final TextView mMessage;
+    private final Context mContext;
     private final TextView mTimecode;
     private final TextView mEnd;
     private final FrameScaleView mScale;
@@ -94,6 +95,8 @@ final class VideoPreview {
     private boolean mManual;
     private boolean mShowing;
     private boolean mFailed;
+    @StringRes
+    private int mError;
     private boolean mHasFrameAspect;
     private long mDuration = -1;
 
@@ -114,9 +117,14 @@ final class VideoPreview {
 
     private VideoPreview(Activity activity, ListItems.VideoItem item, Bitmap placeholder, boolean touchDriven,
                          int pointerId, float x, float y, OnDismissListener listener) {
+        mContext = activity;
         mHost = activity.findViewById(android.R.id.content);
-        mScreen = mHost.getChildAt(0);
-        mScreenAccessibility = mScreen.getImportantForAccessibility();
+        mBehind = new View[mHost.getChildCount()];
+        mBehindAccessibility = new int[mBehind.length];
+        for (int i = 0; i < mBehind.length; i++) {
+            mBehind[i] = mHost.getChildAt(i);
+            mBehindAccessibility[i] = mBehind[i].getImportantForAccessibility();
+        }
         mDismissListener = listener;
         mTouchDriven = touchDriven;
         mPointerId = pointerId;
@@ -143,7 +151,8 @@ final class VideoPreview {
                 activity.getResources().getQuantityString(R.plurals.phone_preview_frames, COUNT, COUNT));
         ((TextView) card.findViewById(R.id.preview_start)).setText(Formats.timecode(0));
         if (!touchDriven) {
-            // nothing to slide: frames only change by themselves
+            // no finger to hold or slide: frames only change by themselves
+            ((TextView) card.findViewById(R.id.preview_hint_auto)).setText(R.string.phone_preview_hint_auto_no_touch);
             card.findViewById(R.id.preview_hint_swipe).setVisibility(View.GONE);
             card.findViewById(R.id.preview_hint_separator).setVisibility(View.GONE);
             ((TextView) card.findViewById(R.id.preview_hint_release)).setText(R.string.phone_preview_hint_tap);
@@ -182,11 +191,14 @@ final class VideoPreview {
             mOverlay.setInsets(windowInsets.getInsets(INSET_TYPES));
             return windowInsets;
         });
-        mOverlay.fitHints(mHost.getWidth(), mHost.getHeight());
+        mOverlay.fitToHeight(mHost.getWidth(), mHost.getHeight());
+        // above anything raised in the window (a snackbar has an elevation), without a shadow
+        mOverlay.setOutlineProvider(null);
+        mOverlay.setTranslationZ(64 * mContext.getResources().getDisplayMetrics().density);
         mHost.addView(mOverlay, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
         ViewCompat.requestApplyInsets(mOverlay);
-        mScreen.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+        for (View v : mBehind) v.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
 
         mOverlay.setAlpha(0f);
         mShowAnimator = ValueAnimator.ofFloat(0f, 1f).setDuration(SHOW_MS);
@@ -215,12 +227,13 @@ final class VideoPreview {
         mFrames.cancel();
         mHost.removeView(mOverlay);
         setBlur(0f);
-        mScreen.setImportantForAccessibility(mScreenAccessibility);
+        for (int i = 0; i < mBehind.length; i++) mBehind[i].setImportantForAccessibility(mBehindAccessibility[i]);
         mDismissListener.onDismissed(this);
     }
 
     private void setBlur(float fraction) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Blur.apply(mScreen, mBlurRadius * fraction);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return;
+        for (View v : mBehind) Blur.apply(v, mBlurRadius * fraction);
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
@@ -235,9 +248,15 @@ final class VideoPreview {
     // ------------------------------------------------------------------------------------------
 
     void onTouchEvent(MotionEvent ev) {
-        switch (ev.getActionMasked()) {
+        int action = ev.getActionMasked();
+        if (!mTouchDriven) {
+            // a tap closes it. A cancelled touch is the system taking the gesture (edge swipe for
+            // Back): Back or the pause that follows close the card, the swipe does nothing more
+            if (action == MotionEvent.ACTION_UP) dismiss();
+            return;
+        }
+        switch (action) {
             case MotionEvent.ACTION_MOVE:
-                if (!mTouchDriven) return;
                 int index = ev.findPointerIndex(mPointerId);
                 if (index >= 0) onFingerMoved(ev.getX(index));
                 return;
@@ -247,7 +266,7 @@ final class VideoPreview {
                 if (ev.getPointerId(ev.getActionIndex()) == mPointerId) dismiss();
                 return;
             default:
-                // finger lifted, gesture cancelled, or a new touch when opened without one
+                // finger lifted or gesture cancelled (a new touch cannot start while it is down)
                 dismiss();
         }
     }
@@ -294,11 +313,23 @@ final class VideoPreview {
 
     private void showSelected() {
         Bitmap frame = mBitmaps[mSelected];
-        if (frame != null) mImage.setImageBitmap(frame);
         boolean loading = frame == null && !mFailed && mStates[mSelected] == FrameScaleView.STATE_PENDING;
+        boolean missing = frame == null && !mFailed && mStates[mSelected] == FrameScaleView.STATE_FAILED;
+        if (frame != null) mImage.setImageBitmap(frame);
+        // never another frame's picture under this frame's time: dimmed while it loads, none if
+        // it cannot be decoded
+        else if (missing) mImage.setImageDrawable(null);
+        mImage.setAlpha(mFailed ? 0.3f : loading ? 0.4f : 1f);
         mLoading.setVisibility(loading ? View.VISIBLE : View.GONE);
-        // the picture still shown is not the selected frame: dimmed under the spinner
-        mImage.setAlpha(mFailed ? 0.3f : loading ? 0.5f : 1f);
+        if (mFailed) {
+            mMessage.setText(mError);
+            mMessage.setVisibility(View.VISIBLE);
+        } else if (missing) {
+            mMessage.setText(R.string.phone_preview_frame_unavailable);
+            mMessage.setVisibility(View.VISIBLE);
+        } else {
+            mMessage.setVisibility(View.GONE);
+        }
         if (mDuration > 0 && !mFailed) {
             String time = Formats.timecode(PreviewFrames.timeOf(mSelected, mDuration));
             mTimecode.setText(time);
@@ -333,9 +364,8 @@ final class VideoPreview {
 
     private void onError(@StringRes int message) {
         mFailed = true;
+        mError = message;
         mOverlay.removeCallbacks(mAdvance);
-        mMessage.setText(message);
-        mMessage.setVisibility(View.VISIBLE);
         showSelected();
     }
 
@@ -369,7 +399,8 @@ final class VideoPreview {
 
     /**
      * Full-window layer holding the card: about 94% of the width inside the system bars, the frame
-     * as high as the video aspect ratio allows in the space left.
+     * as high as the video aspect ratio allows in the height left (letterboxed beyond), the whole
+     * card always inside the window.
      */
     @SuppressLint("ViewConstructor")
     static final class Overlay extends ViewGroup {
@@ -377,14 +408,14 @@ final class VideoPreview {
 
         private View mCard;
         private View mFrame;
-        private View mHints;
+        /** Dropped in this order when the window is short. */
+        private View[][] mOptional;
         Insets mInsets = Insets.NONE;
         float mAspect = DEFAULT_ASPECT;
         /** Finger position in this layer, NaN without a finger. */
         float mFingerY = Float.NaN;
         private final int mMargin;
         private final int mMinFrame;
-        private final int mMinCardWidth;
         private final int mClearance;
 
         Overlay(Context context) {
@@ -392,7 +423,6 @@ final class VideoPreview {
             float density = context.getResources().getDisplayMetrics().density;
             mMargin = Math.round(12 * density);
             mMinFrame = Math.round(120 * density);
-            mMinCardWidth = Math.round(340 * density);
             mClearance = Math.round(28 * density);
             setBackgroundColor(ContextCompat.getColor(context, R.color.nova_preview_scrim));
         }
@@ -400,7 +430,12 @@ final class VideoPreview {
         void setCard(View card) {
             mCard = card;
             mFrame = card.findViewById(R.id.preview_frame);
-            mHints = card.findViewById(R.id.preview_hints);
+            mOptional = new View[][]{
+                    {card.findViewById(R.id.preview_hints)},
+                    {card.findViewById(R.id.preview_handle), card.findViewById(R.id.preview_title),
+                            card.findViewById(R.id.preview_name)},
+                    {card.findViewById(R.id.preview_scale_label)},
+            };
             addView(card);
         }
 
@@ -417,13 +452,22 @@ final class VideoPreview {
         }
 
         /**
-         * Short screens (landscape phones) drop the gesture hints to keep a usable frame. Decided
-         * once, before the card is shown: toggling it while measuring would loop.
+         * Short windows (landscape phones, split screen) drop what is not essential, the gesture
+         * hints first, then the title and the scale label, until a useful frame fits. Decided
+         * once, before the card is shown: toggling views while measuring would loop.
          */
-        void fitHints(int width, int height) {
+        void fitToHeight(int width, int height) {
             if (width <= 0 || height <= 0) return;
-            int areaHeight = height - mInsets.top - mInsets.bottom - 2 * mMargin;
-            if (chromeHeight(cardWidth(width)) + mMinFrame > areaHeight) mHints.setVisibility(GONE);
+            int area = areaHeight(height);
+            int cardWidth = cardWidth(width);
+            for (View[] group : mOptional) {
+                if (chromeHeight(cardWidth) + mMinFrame <= area) return;
+                for (View v : group) v.setVisibility(GONE);
+            }
+        }
+
+        private int areaHeight(int height) {
+            return height - mInsets.top - mInsets.bottom - 2 * mMargin;
         }
 
         private int cardWidth(int width) {
@@ -443,22 +487,12 @@ final class VideoPreview {
             int width = MeasureSpec.getSize(widthMeasureSpec);
             int height = MeasureSpec.getSize(heightMeasureSpec);
             setMeasuredDimension(width, height);
-            int areaHeight = height - mInsets.top - mInsets.bottom - 2 * mMargin;
-            int padding = mCard.getPaddingLeft() + mCard.getPaddingRight();
             int cardWidth = cardWidth(width);
             int chrome = chromeHeight(cardWidth);
+            int padding = mCard.getPaddingLeft() + mCard.getPaddingRight();
+            // the frame gets what is left: a taller video is letterboxed, never off-screen
             int frameHeight = Math.round((cardWidth - padding) / mAspect);
-            int maxFrame = Math.max(mMinFrame, areaHeight - chrome);
-            if (frameHeight > maxFrame) {
-                frameHeight = maxFrame;
-                // a narrower card rather than wide black bars, as long as the scale stays usable
-                int fitted = Math.round(frameHeight * mAspect) + padding;
-                int narrowed = Math.max(Math.min(cardWidth, mMinCardWidth), fitted);
-                if (narrowed < cardWidth) {
-                    cardWidth = narrowed;
-                    chrome = chromeHeight(cardWidth);
-                }
-            }
+            frameHeight = Math.max(0, Math.min(frameHeight, areaHeight(height) - chrome));
             mFrame.getLayoutParams().height = frameHeight;
             mCard.measure(MeasureSpec.makeMeasureSpec(cardWidth, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(chrome + frameHeight, MeasureSpec.EXACTLY));
