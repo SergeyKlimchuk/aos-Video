@@ -13,6 +13,7 @@
 package com.archos.mediacenter.video.phone;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -561,6 +562,12 @@ public class BrowserFragment extends Fragment implements PhoneListAdapter.Callba
     @Override
     public void onVideoMenu(ListItems.VideoItem item, View anchor) {
         // no menu on browser rows
+    }
+
+    @Override
+    public void onVideoPreview(ListItems.VideoItem item, Bitmap placeholder) {
+        PhoneMainActivity main = PhoneUi.main(this);
+        if (main != null) main.showPreview(item, placeholder);
     }
 
     @Override

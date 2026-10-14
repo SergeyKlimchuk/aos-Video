@@ -13,6 +13,7 @@
 package com.archos.mediacenter.video.phone;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -230,6 +231,12 @@ public class VideoListFragment extends Fragment implements PhoneListAdapter.Call
             }
         });
         popup.show();
+    }
+
+    @Override
+    public void onVideoPreview(ListItems.VideoItem item, Bitmap placeholder) {
+        PhoneMainActivity main = PhoneUi.main(this);
+        if (main != null) main.showPreview(item, placeholder);
     }
 
     @Override

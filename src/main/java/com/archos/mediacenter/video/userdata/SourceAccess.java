@@ -152,7 +152,7 @@ public final class SourceAccess {
      * SFTP only: compares the presented host key with the trusted one. FileCoreLibrary itself
      * accepts any key, so this check runs before the app opens an SFTP source.
      */
-    static void verifyHostKey(NetworkSource source) throws Exception {
+    public static void verifyHostKey(NetworkSource source) throws Exception {
         if (source.protocol != SourceProtocol.SFTP) return;
         Long verifiedAt = sVerifiedHostKeys.get(source.id);
         if (source.hostKeyFingerprint != null && verifiedAt != null

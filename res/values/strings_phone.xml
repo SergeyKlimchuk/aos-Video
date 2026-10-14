@@ -188,4 +188,19 @@
     <string name="phone_shortcut_recent">Recent</string>
     <string name="phone_shortcut_favorites">Favorites</string>
     <string name="phone_shortcut_sources">Sources</string>
+
+    <!-- Hold-to-preview -->
+    <string name="phone_preview_title">Quick preview</string>
+    <plurals name="phone_preview_frames">
+        <item quantity="one">%d preview frame</item>
+        <item quantity="other">%d preview frames</item>
+    </plurals>
+    <string name="phone_preview_hint_auto">Hold — frames change automatically</string>
+    <string name="phone_preview_hint_swipe">Slide left/right — pick a frame by position</string>
+    <string name="phone_preview_hint_release">Release your finger — the preview closes</string>
+    <string name="phone_preview_hint_tap">Touch the screen to close the preview</string>
+    <string name="phone_preview_frame_description">Frame %1$d of %2$d, %3$s</string>
+    <string name="phone_preview_error_read">This video cannot be read</string>
+    <string name="phone_preview_error_frames">No frame could be extracted from this video</string>
+    <string name="phone_preview_error_host_key">The server key is not confirmed yet. Open the video once to check it.</string>
 </resources>

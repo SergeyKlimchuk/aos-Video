@@ -13,4 +13,6 @@
     <color name="nova_nav_bg">#131A26</color>
     <color name="nova_track">#2A3446</color>
     <color name="nova_error">#F87171</color>
+    <color name="nova_preview_card">#1C2433</color>
+    <color name="nova_preview_scrim">#73050810</color>
 </resources>

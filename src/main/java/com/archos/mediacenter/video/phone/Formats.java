@@ -38,6 +38,12 @@ final class Formats {
         return durationMs > 0 ? DateUtils.formatElapsedTime(durationMs / 1000) : null;
     }
 
+    /** Preview time codes, always with hours: "00:52:08", "01:42:07". */
+    static String timecode(long ms) {
+        long s = Math.max(0, ms) / 1000;
+        return String.format(Locale.ROOT, "%02d:%02d:%02d", s / 3600, (s / 60) % 60, s % 60);
+    }
+
     private static boolean sameDay(Calendar a, Calendar b) {
         return a.get(Calendar.YEAR) == b.get(Calendar.YEAR) && a.get(Calendar.DAY_OF_YEAR) == b.get(Calendar.DAY_OF_YEAR);
     }

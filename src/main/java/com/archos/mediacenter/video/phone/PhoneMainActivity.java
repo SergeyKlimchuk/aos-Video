@@ -14,12 +14,18 @@ package com.archos.mediacenter.video.phone;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -54,6 +60,15 @@ public class PhoneMainActivity extends PhoneBaseActivity {
     /** Launch intent handled once the tab screens exist (onStart). */
     private Intent mPendingIntent;
 
+    // Hold-to-preview: the finger that made the long press keeps driving the card
+    private VideoPreview mPreview;
+    private boolean mTouchDown;
+    private int mTouchPointerId;
+    private float mTouchX;
+    private float mTouchY;
+    /** The rest of a gesture that closed the preview is not delivered to the screen. */
+    private boolean mSwallowGesture;
+
     private final ActivityResultLauncher<Intent> mSourceForm = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == Activity.RESULT_OK && mShowSourcesAfterSave) {
@@ -65,6 +80,10 @@ public class PhoneMainActivity extends PhoneBaseActivity {
     private final OnBackPressedCallback mBack = new OnBackPressedCallback(true) {
         @Override
         public void handleOnBackPressed() {
+            if (mPreview != null) {
+                mPreview.dismiss();
+                return;
+            }
             TabHostFragment tab = mTabs[mCurrent];
             Fragment top = tab.getTop();
             if (top instanceof BackHandler && ((BackHandler) top).onBackPressed()) return;
@@ -118,6 +137,60 @@ public class PhoneMainActivity extends PhoneBaseActivity {
             mPendingIntent = null;
             handleIntent(intent);
         }
+    }
+
+    @Override
+    protected void onPause() {
+        dismissPreview();
+        super.onPause();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (!hasFocus) dismissPreview();
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        dismissPreview();
+        super.onConfigurationChanged(newConfig);
+    }
+
+    @Override
+    protected void onDestroy() {
+        dismissPreview();
+        super.onDestroy();
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        int action = ev.getActionMasked();
+        if (action == MotionEvent.ACTION_DOWN) {
+            mSwallowGesture = false;
+            mTouchDown = true;
+            mTouchPointerId = ev.getPointerId(0);
+        }
+        if (mTouchDown) {
+            int index = ev.findPointerIndex(mTouchPointerId);
+            if (index >= 0) {
+                mTouchX = ev.getX(index);
+                mTouchY = ev.getY(index);
+            }
+        }
+        boolean ends = action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL;
+        if (ends) mTouchDown = false;
+        if (mPreview != null) {
+            // the card takes the whole gesture; the screen behind sees none of it
+            mPreview.onTouchEvent(ev);
+            if (mPreview == null && !ends) mSwallowGesture = true;
+            return true;
+        }
+        if (mSwallowGesture) {
+            if (ends) mSwallowGesture = false;
+            return true;
+        }
+        return super.dispatchTouchEvent(ev);
     }
 
     private static String tag(int index) {
@@ -198,6 +271,35 @@ public class PhoneMainActivity extends PhoneBaseActivity {
         mTabs[TAB_SOURCES].popToRoot();
         SourcesFragment sources = (SourcesFragment) mTabs[TAB_SOURCES].getRoot();
         if (sources != null) sources.selectInnerTab(innerTab);
+    }
+
+    /**
+     * Hold-to-preview of a video row, called from its long press: the finger still down drives
+     * the card and lifting it closes the card. Nothing is played, the history is untouched.
+     */
+    void showPreview(ListItems.VideoItem item, Bitmap placeholder) {
+        if (item.source == null || isFinishing()) return;
+        dismissPreview();
+        boolean touch = mTouchDown;
+        mPreview = VideoPreview.show(this, item, placeholder, touch, mTouchPointerId, mTouchX, mTouchY, preview -> {
+            if (mPreview == preview) mPreview = null;
+        });
+        if (touch) {
+            // the row and its list stop tracking this gesture: no click, no scroll, no tab swipe
+            long now = SystemClock.uptimeMillis();
+            MotionEvent cancel = MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, mTouchX, mTouchY, 0);
+            super.dispatchTouchEvent(cancel);
+            cancel.recycle();
+        }
+    }
+
+    void dismissPreview() {
+        if (mPreview != null) mPreview.dismiss();
+    }
+
+    @VisibleForTesting
+    VideoPreview getPreview() {
+        return mPreview;
     }
 
     /** Opens the source form; a null id creates a new source. */

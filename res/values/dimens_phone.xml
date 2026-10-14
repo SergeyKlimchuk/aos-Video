@@ -16,4 +16,6 @@
     <dimen name="nova_icon_tile">56dp</dimen>
     <dimen name="nova_title_size">28sp</dimen>
     <dimen name="nova_progress_height">4dp</dimen>
+    <dimen name="nova_radius_preview">24dp</dimen>
+    <dimen name="nova_radius_preview_frame">14dp</dimen>
 </resources>

@@ -24,4 +24,7 @@
     <color name="nova_tile_green">#14B8A6</color>
     <color name="nova_tile_purple">#8B5CF6</color>
     <color name="nova_tile_orange">#F59E0B</color>
+    <!-- hold-to-preview card -->
+    <color name="nova_preview_card">#FFFFFF</color>
+    <color name="nova_preview_scrim">#3D0F172A</color>
 </resources>

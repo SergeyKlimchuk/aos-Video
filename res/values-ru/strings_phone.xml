@@ -183,4 +183,21 @@
     <string name="phone_shortcut_recent">Недавние</string>
     <string name="phone_shortcut_favorites">Избранное</string>
     <string name="phone_shortcut_sources">Источники</string>
+
+    <!-- Hold-to-preview -->
+    <string name="phone_preview_title">Быстрый предпросмотр</string>
+    <plurals name="phone_preview_frames">
+        <item quantity="one">%d кадр предпросмотра</item>
+        <item quantity="few">%d кадра предпросмотра</item>
+        <item quantity="many">%d кадров предпросмотра</item>
+        <item quantity="other">%d кадра предпросмотра</item>
+    </plurals>
+    <string name="phone_preview_hint_auto">Удерживайте — кадры меняются автоматически</string>
+    <string name="phone_preview_hint_swipe">Проведите влево/вправо — выбор кадра по позиции</string>
+    <string name="phone_preview_hint_release">Отпустите палец — предпросмотр закроется</string>
+    <string name="phone_preview_hint_tap">Коснитесь экрана, чтобы закрыть предпросмотр</string>
+    <string name="phone_preview_frame_description">Кадр %1$d из %2$d, %3$s</string>
+    <string name="phone_preview_error_read">Не удалось прочитать видео</string>
+    <string name="phone_preview_error_frames">Не удалось получить кадры из этого видео</string>
+    <string name="phone_preview_error_host_key">Ключ сервера ещё не подтверждён. Откройте видео один раз, чтобы проверить его.</string>
 </resources>

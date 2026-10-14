@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hold-to-preview card (VideoPreview). The frame height follows the video aspect ratio and
+     the space left on screen; it is set by VideoPreview.Overlay. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/preview_card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_nova_preview_card"
+    android:elevation="16dp"
+    android:orientation="vertical"
+    android:paddingStart="@dimen/nova_space_l"
+    android:paddingTop="10dp"
+    android:paddingEnd="@dimen/nova_space_l"
+    android:paddingBottom="@dimen/nova_space_m">
+
+    <View
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="@dimen/nova_space_m"
+        android:background="@drawable/bg_nova_handle" />
+
+    <TextView
+        android:id="@+id/preview_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:accessibilityHeading="true"
+        android:text="@string/phone_preview_title"
+        android:textAppearance="@style/NovaPhone.Text.PreviewTitle"
+        tools:targetApi="28" />
+
+    <TextView
+        android:id="@+id/preview_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:ellipsize="middle"
+        android:singleLine="true"
+        android:textAppearance="@style/NovaPhone.Text.ItemMeta"
+        android:textSize="14sp"
+        tools:text="Video.mkv" />
+
+    <FrameLayout
+        android:id="@+id/preview_frame"
+        android:layout_width="match_parent"
+        android:layout_height="180dp"
+        android:layout_marginTop="@dimen/nova_space_m"
+        android:background="@drawable/bg_nova_preview_frame">
+
+        <ImageView
+            android:id="@+id/preview_image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:scaleType="fitCenter" />
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/preview_loading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            app:indicatorColor="@android:color/white"
+            app:indicatorSize="36dp"
+            app:trackThickness="3dp" />
+
+        <TextView
+            android:id="@+id/preview_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:padding="@dimen/nova_space_l"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/preview_timecode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/bg_nova_badge"
+            android:fontFeatureSettings="tnum"
+            android:paddingStart="10dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="4dp"
+            android:textAppearance="@style/NovaPhone.Text.Badge"
+            android:textSize="15sp"
+            android:visibility="gone"
+            tools:text="00:52:08"
+            tools:visibility="visible" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/preview_scale_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/nova_space_m"
+        android:textAppearance="@style/NovaPhone.Text.PreviewHint"
+        tools:text="20 preview frames" />
+
+    <!-- a timeline: start on the left in every language, like the dots of the scale -->
+    <com.archos.mediacenter.video.phone.FrameScaleView
+        android:id="@+id/preview_scale"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="-10dp"
+        android:layout_marginTop="2dp"
+        android:layout_marginEnd="-10dp"
+        android:layoutDirection="ltr" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layoutDirection="ltr"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/preview_start"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFeatureSettings="tnum"
+            android:textAppearance="@style/NovaPhone.Text.ItemMeta"
+            tools:text="00:00:00" />
+
+        <TextView
+            android:id="@+id/preview_end"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFeatureSettings="tnum"
+            android:textAppearance="@style/NovaPhone.Text.ItemMeta"
+            tools:text="01:42:07" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/preview_hints"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:baselineAligned="false"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/preview_hint_auto"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:drawablePadding="10dp"
+                android:gravity="center_vertical"
+                android:text="@string/phone_preview_hint_auto"
+                android:textAppearance="@style/NovaPhone.Text.PreviewHint"
+                app:drawableStartCompat="@drawable/ic_phone_preview_auto"
+                app:drawableTint="@color/nova_accent" />
+
+            <View
+                android:id="@+id/preview_hint_separator"
+                android:layout_width="1dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"
+                android:background="@color/nova_divider" />
+
+            <TextView
+                android:id="@+id/preview_hint_swipe"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:drawablePadding="10dp"
+                android:gravity="center_vertical"
+                android:text="@string/phone_preview_hint_swipe"
+                android:textAppearance="@style/NovaPhone.Text.PreviewHint"
+                app:drawableStartCompat="@drawable/ic_phone_preview_swipe"
+                app:drawableTint="@color/nova_accent" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="@dimen/nova_space_m"
+            android:background="@color/nova_divider" />
+
+        <TextView
+            android:id="@+id/preview_hint_release"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="10dp"
+            android:drawablePadding="8dp"
+            android:gravity="center_vertical"
+            android:text="@string/phone_preview_hint_release"
+            android:textAppearance="@style/NovaPhone.Text.ItemMeta"
+            app:drawableStartCompat="@drawable/ic_phone_preview_release"
+            app:drawableTint="@color/nova_text_secondary" />
+    </LinearLayout>
+</LinearLayout>

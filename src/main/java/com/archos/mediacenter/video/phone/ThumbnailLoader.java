@@ -240,6 +240,45 @@ public final class ThumbnailLoader {
         return new File(mDir, key + ".jpg");
     }
 
+    // ------------------------------------------------------------------------------------------
+    // Hold-to-preview frames: same directory, same size limit, same "clear cache" as thumbnails
+    // ------------------------------------------------------------------------------------------
+
+    /**
+     * Cache key of a video for its preview frames. An unknown modification time is completed
+     * from what a previous listing recorded, as for the list thumbnails.
+     */
+    String previewKey(MediaRef ref, long size, long modified) {
+        if (modified <= 0) {
+            UserDataStore.MediaInfo info = UserDataStore.get(mContext).getMediaInfo(ref);
+            if (info != null && (size <= 0 || info.size == size)) {
+                size = info.size;
+                modified = info.modified;
+            }
+        }
+        return cacheKey(ref, size, modified) + "_p";
+    }
+
+    /** Cache file of one preview frame. */
+    File previewFile(String previewKey, int count, int index) {
+        return file(previewKey + count + "_" + index);
+    }
+
+    /** Cached preview frame, or null (call off the main thread). */
+    Bitmap readPreviewFrame(File file) {
+        if (!file.exists()) return null;
+        Bitmap bitmap = BitmapFactory.decodeFile(file.getPath());
+        if (bitmap != null && !file.setLastModified(System.currentTimeMillis()) && log.isTraceEnabled()) {
+            log.trace("readPreviewFrame: cannot touch {}", file);
+        }
+        return bitmap;
+    }
+
+    /** Stores a preview frame (call off the main thread). */
+    void savePreviewFrame(File file, Bitmap bitmap) {
+        save(file, bitmap);
+    }
+
     private void load(String key, NetworkSource source, MediaRef ref, long size, long modified, boolean generate) {
         Bitmap bitmap = null;
         File file = file(key);

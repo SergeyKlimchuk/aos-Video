@@ -13,9 +13,12 @@
 package com.archos.mediacenter.video.phone;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,6 +28,8 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 import androidx.core.widget.ImageViewCompat;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
@@ -49,8 +54,11 @@ final class PhoneListAdapter extends ListAdapter<ListItems.Item, RecyclerView.Vi
 
         void onHeartClick(ListItems.VideoItem item);
 
-        /** Long press or the "more" button; only called when {@link #hasVideoMenu()}. */
+        /** The "more" button; only shown when {@link #hasVideoMenu()}. */
         void onVideoMenu(ListItems.VideoItem item, View anchor);
+
+        /** Long press: hold-to-preview. The placeholder is the row thumbnail, may be null. */
+        void onVideoPreview(ListItems.VideoItem item, Bitmap placeholder);
 
         boolean hasVideoMenu();
 
@@ -191,20 +199,26 @@ final class PhoneListAdapter extends ListAdapter<ListItems.Item, RecyclerView.Vi
             if (mCallbacks.hasVideoMenu()) {
                 more.setVisibility(View.VISIBLE);
                 more.setOnClickListener(v -> mCallbacks.onVideoMenu(item, more));
-                itemView.setOnLongClickListener(v -> {
-                    mCallbacks.onVideoMenu(item, more);
-                    return true;
-                });
             } else {
                 more.setVisibility(View.GONE);
-                itemView.setOnLongClickListener(null);
             }
+            itemView.setOnLongClickListener(v -> {
+                mCallbacks.onVideoPreview(item, thumbnailBitmap());
+                return true;
+            });
+            ViewCompat.replaceAccessibilityAction(itemView, AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_LONG_CLICK,
+                    context.getString(R.string.phone_preview_title), null);
             itemView.setContentDescription(item.meta == null ? item.title : item.title + ", " + item.meta);
             boolean generate = !item.unavailable && item.source != null && SourceAccess.canConnectDirectly(item.source);
             mThumbnails.bind(thumb, thumbIcon, item.source, item.ref, item.size, item.modified, generate,
                     durationMs -> {
                         if (item.durationMs <= 0) setDuration(durationMs);
                     }, mOwner);
+        }
+
+        private Bitmap thumbnailBitmap() {
+            Drawable d = thumb.getDrawable();
+            return d instanceof BitmapDrawable ? ((BitmapDrawable) d).getBitmap() : null;
         }
 
         private void setDuration(long durationMs) {

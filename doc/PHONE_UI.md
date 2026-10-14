@@ -16,6 +16,7 @@ EntryActivity ── TV ──> MainActivityLeanback (unchanged)
                      │               SourceEditActivity (add / edit form)
                      └── Settings  PhoneSettingsFragment
 Any video row ──> PlayerActivity (no information card, no resume dialog)
+Long press on a video row ──> VideoPreview (card in the same window, no player)
 ```
 
 Back rules:
@@ -61,6 +62,34 @@ sync. It does not depend on the MediaLib video index.
   the first real `onPlay`, then saves every 5 s, on pause, on exit and at the end.
 - The player overlay shows a heart (favorite toggle without interrupting playback) and a
   "Start over" item; the information card is hidden for phone UI launches.
+
+## Hold-to-preview
+
+A long press on any video row (Recently played, Favorites, folder browser) opens a "Quick
+preview" card in the activity's own window; the row menu stays on the "more" button.
+
+```
+PhoneListAdapter (long press) ──> fragment.onVideoPreview ──> PhoneMainActivity.showPreview
+PhoneMainActivity.dispatchTouchEvent ──> VideoPreview.onTouchEvent   (whole gesture while shown)
+VideoPreview (card, blur, layout) <── PreviewFrames (extraction + cache) ──> MediaLib retriever
+```
+
+- `VideoPreview` adds a full-window layer to `android.R.id.content` and blurs the app screen
+  behind it (`RenderEffect`, Android 12+; a dim scrim below). The card takes ~94% of the width
+  inside the system bars, its frame follows the video aspect ratio and the remaining height
+  (narrower card rather than black bars; hints dropped on short screens), and it is centred
+  unless the finger would cover the frame: it then moves up so the frame ends above the finger.
+- The finger of the long press keeps driving it: at rest the frames change every 700 ms (only
+  to frames already extracted); past the touch slop horizontally, the frame under the finger's
+  x position is shown until release. Lifting the finger, a cancelled gesture, Back, pause or
+  focus loss close it at once; the rest of the gesture never reaches the list. Without a finger
+  (accessibility action, keyboard) the frames change by themselves and the next touch closes it.
+- `PreviewFrames` extracts 20 frames, each in the middle of an equal part of the video, with
+  two connections, nearest-needed frame first. Frames are cached next to the thumbnails (same
+  256 MB limit, same "Clear cache"); with a known duration a cached video needs no connection.
+  Three failed frames before any success report the file as unreadable; closing the card
+  releases the retrievers from a background thread, which aborts the native extraction.
+- Nothing is played and nothing is written to the history or the positions.
 
 ## Online metadata
 
