@@ -40,6 +40,7 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.archos.mediacenter.video.R;
 import com.archos.mediacenter.video.userdata.MediaRef;
+import com.archos.mediacenter.video.userdata.NetworkError;
 import com.archos.mediacenter.video.userdata.NetworkSource;
 import com.archos.mediacenter.video.userdata.SecretCodec;
 import com.archos.mediacenter.video.userdata.SourceProtocol;
@@ -83,7 +84,7 @@ public class VideoPreviewTest {
     };
 
     /** Frames of any time, extracted instantly. */
-    private static final class FakeExtractor implements PreviewFrames.Extractor {
+    private static class FakeExtractor implements PreviewFrames.Extractor {
         final AtomicInteger frames;
         final boolean failOpen;
         final boolean noFrame;
@@ -108,7 +109,7 @@ public class VideoPreviewTest {
         }
 
         @Override
-        public Bitmap frameAt(long timeMs) {
+        public Bitmap frameAt(long timeMs) throws Exception {
             frames.incrementAndGet();
             if (noFrame || timeMs == brokenTime) return null;
             return Bitmap.createBitmap(160, 90, Bitmap.Config.ARGB_8888);
@@ -162,11 +163,11 @@ public class VideoPreviewTest {
         mFactory = PreviewFrames.sFactory;
         mProbe = PreviewFrames.sProbe;
         mExecutor = PreviewFrames.sExecutor;
-        PreviewFrames.sProbe = (context, source, ref) -> {
-        };
+        // the file is found as listed
+        PreviewFrames.sProbe = (context, source, ref) -> null;
         // extraction runs synchronously; its results still go through the main looper
         PreviewFrames.sExecutor = Runnable::run;
-        PreviewFrames.sFactory = context -> new FakeExtractor(mExtracted, false, false);
+        PreviewFrames.sFactory = (context, from) -> new FakeExtractor(mExtracted, false, false);
         ThumbnailLoader.get(mContext).clearCache();
     }
 
@@ -298,7 +299,7 @@ public class VideoPreviewTest {
         assertEquals(0, first.error);
 
         // known duration and cached frames: no connection at all
-        PreviewFrames.sFactory = context -> {
+        PreviewFrames.sFactory = (context, from) -> {
             throw new AssertionError("no connection expected");
         };
         Recorder second = new Recorder();
@@ -311,7 +312,7 @@ public class VideoPreviewTest {
     @Test
     public void unreachableServerReportsAnErrorInsteadOfFrames() throws Exception {
         NetworkSource source = addSource();
-        PreviewFrames.sFactory = context -> new FakeExtractor(mExtracted, true, false);
+        PreviewFrames.sFactory = (context, from) -> new FakeExtractor(mExtracted, true, false);
         Recorder recorder = new Recorder();
         new PreviewFrames(mContext, source, new MediaRef(source.id, "/Video/Film.mkv"), 1L, 1L, DURATION, recorder).start();
         idle();
@@ -326,14 +327,14 @@ public class VideoPreviewTest {
         PreviewFrames.sProbe = (context, s, ref) -> {
             throw new java.io.FileNotFoundException(ref.path);
         };
-        PreviewFrames.sFactory = context -> {
+        PreviewFrames.sFactory = (context, from) -> {
             throw new AssertionError("no retriever once the file is known to be missing");
         };
         Recorder recorder = new Recorder();
         new PreviewFrames(mContext, source, new MediaRef(source.id, "/Video/Gone.mkv"), 1L, 1L, -1, recorder).start();
         idle();
         assertEquals(PreviewFrames.COUNT, recorder.failed.size());
-        assertEquals(com.archos.mediacenter.video.userdata.NetworkError.Kind.NOT_FOUND.messageRes, recorder.error);
+        assertEquals(NetworkError.Kind.NOT_FOUND.messageRes, recorder.error);
     }
 
     @Test
@@ -349,7 +350,7 @@ public class VideoPreviewTest {
             assertTrue(cache.previewFile(key, PreviewFrames.COUNT, i).delete());
         }
         mExtracted.set(0);
-        PreviewFrames.sFactory = context -> new FakeExtractor(mExtracted, false, true);
+        PreviewFrames.sFactory = (context, from) -> new FakeExtractor(mExtracted, false, true);
         Recorder recorder = new Recorder();
         new PreviewFrames(mContext, source, ref, 1_000_000L, 1234L, DURATION, recorder).start();
         idle();
@@ -377,14 +378,106 @@ public class VideoPreviewTest {
             assertTrue(cache.previewFile(key, PreviewFrames.COUNT, i).delete());
         }
         PreviewFrames.sProbe = (context, s, r) -> {
-            throw new java.io.FileNotFoundException(r.path);
+            throw new java.net.ConnectException("connection refused");
+        };
+        PreviewFrames.sFactory = (context, from) -> {
+            throw new AssertionError("no retriever once the server is known to be unreachable");
         };
         Recorder recorder = new Recorder();
         new PreviewFrames(mContext, source, ref, 1_000_000L, 1234L, DURATION, recorder).start();
         idle();
+        // nothing says the file changed: what is cached is still shown
         assertEquals(5, recorder.ready.size());
-        int notFound = com.archos.mediacenter.video.userdata.NetworkError.Kind.NOT_FOUND.messageRes;
-        for (int i = 5; i < PreviewFrames.COUNT; i++) assertEquals(notFound, (int) recorder.failures.get(i));
+        assertEquals(DURATION, recorder.duration);
+        int unreachable = NetworkError.Kind.UNREACHABLE.messageRes;
+        for (int i = 5; i < PreviewFrames.COUNT; i++) assertEquals(unreachable, (int) recorder.failures.get(i));
+    }
+
+    @Test
+    public void fileGoneOutsideTheAppShowsNoCachedFrame() throws Exception {
+        NetworkSource source = addSource();
+        MediaRef ref = new MediaRef(source.id, "/Video/Film.mkv");
+        new PreviewFrames(mContext, source, ref, 1_000_000L, 1234L, -1, new Recorder()).start();
+        idle();
+        // moved, renamed or deleted on the server: every frame is still cached
+        PreviewFrames.sProbe = (context, s, r) -> {
+            throw new java.io.FileNotFoundException(r.path);
+        };
+        PreviewFrames.sFactory = (context, from) -> {
+            throw new AssertionError("no retriever once the file is known to be missing");
+        };
+        Recorder recorder = new Recorder();
+        new PreviewFrames(mContext, source, ref, 1_000_000L, 1234L, DURATION, recorder).start();
+        idle();
+        assertTrue(recorder.ready.isEmpty());
+        assertEquals(PreviewFrames.COUNT, recorder.failed.size());
+        assertEquals(NetworkError.Kind.NOT_FOUND.messageRes, recorder.error);
+        assertEquals(-1, recorder.duration);
+    }
+
+    @Test
+    public void fileReplacedOutsideTheAppGetsItsOwnFramesAndDuration() throws Exception {
+        NetworkSource source = addSource();
+        MediaRef ref = new MediaRef(source.id, "/Video/Film.mkv");
+        new PreviewFrames(mContext, source, ref, 1_000_000L, 1234L, -1, new Recorder()).start();
+        idle();
+        assertEquals(DURATION, mStore.getKnownDuration(ref));
+        // another, shorter video under the same name; the history still has the old size
+        long shorter = 600_000;
+        PreviewFrames.sProbe = (context, s, r) -> new PreviewFrames.FileState(2_000_000L, 5678L);
+        PreviewFrames.sFactory = (context, from) -> new FakeExtractor(mExtracted, false, false) {
+            @Override
+            public long open(String uri, boolean needDuration) {
+                return needDuration ? shorter : -1;
+            }
+        };
+        mExtracted.set(0);
+        Recorder recorder = new Recorder();
+        new PreviewFrames(mContext, source, ref, 1_000_000L, -1, DURATION, recorder).start();
+        idle();
+        assertEquals(shorter, recorder.duration);
+        assertEquals(PreviewFrames.COUNT, recorder.ready.size());
+        // none of the cached frames of the earlier version
+        assertEquals(PreviewFrames.COUNT, mExtracted.get());
+        assertEquals(shorter, mStore.getKnownDuration(ref, 2_000_000L, 5678L));
+        assertEquals(-1, mStore.getKnownDuration(ref, 1_000_000L, 1234L));
+    }
+
+    @Test
+    public void unchangedFileStillNeedsNoRetriever() throws Exception {
+        NetworkSource source = addSource();
+        MediaRef ref = new MediaRef(source.id, "/Video/Film.mkv");
+        new PreviewFrames(mContext, source, ref, 1_000_000L, 1234L, -1, new Recorder()).start();
+        idle();
+        // a favorite: size known, time unknown; the lookup finds the same version
+        PreviewFrames.sProbe = (context, s, r) -> new PreviewFrames.FileState(1_000_000L, 1234L);
+        PreviewFrames.sFactory = (context, from) -> {
+            throw new AssertionError("no retriever expected");
+        };
+        Recorder recorder = new Recorder();
+        new PreviewFrames(mContext, source, ref, 1_000_000L, -1, -1, recorder).start();
+        idle();
+        assertEquals(DURATION, recorder.duration);
+        assertEquals(PreviewFrames.COUNT, recorder.ready.size());
+    }
+
+    @Test
+    public void fileThatCrashesTheDecoderGivesUpAtOnce() throws Exception {
+        NetworkSource source = addSource();
+        PreviewFrames.sFactory = (context, from) -> new FakeExtractor(mExtracted, false, false) {
+            @Override
+            public Bitmap frameAt(long timeMs) throws Exception {
+                frames.incrementAndGet();
+                throw new PreviewFrames.UnreadableException();
+            }
+        };
+        Recorder recorder = new Recorder();
+        new PreviewFrames(mContext, source, new MediaRef(source.id, "/Video/Crash.mkv"), 1L, 1L, DURATION, recorder).start();
+        idle();
+        assertEquals(R.string.phone_preview_error_read, recorder.error);
+        assertEquals(PreviewFrames.COUNT, recorder.failed.size());
+        // the frame of each connection, no more
+        assertTrue("extractions: " + mExtracted.get(), mExtracted.get() <= 2);
     }
 
     @Test
@@ -399,7 +492,7 @@ public class VideoPreviewTest {
     @Test
     public void undecodableFileStopsAfterAFewAttempts() throws Exception {
         NetworkSource source = addSource();
-        PreviewFrames.sFactory = context -> new FakeExtractor(mExtracted, false, true);
+        PreviewFrames.sFactory = (context, from) -> new FakeExtractor(mExtracted, false, true);
         Recorder recorder = new Recorder();
         new PreviewFrames(mContext, source, new MediaRef(source.id, "/Video/Broken.mkv"), 1L, 1L, DURATION, recorder).start();
         idle();
@@ -657,7 +750,7 @@ public class VideoPreviewTest {
     @Test
     public void undecodableFrameIsNotShownAsAnotherOne() throws Exception {
         int broken = 3;
-        PreviewFrames.sFactory = context -> new FakeExtractor(mExtracted, false, false,
+        PreviewFrames.sFactory = (context, from) -> new FakeExtractor(mExtracted, false, false,
                 PreviewFrames.timeOf(broken, DURATION));
         withFavoriteRow((activity, row) -> {
             float[] finger = centre(row);

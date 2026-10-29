@@ -86,18 +86,35 @@ public final class SourceAccess {
     // ------------------------------------------------------------------------------------------
 
     public static void registerCredentials(NetworkSource source, String password) {
-        String user = source.username == null ? "" : source.username;
-        String domain = source.protocol == SourceProtocol.SMB && source.domain != null ? source.domain : "";
-        NetworkCredentialsDatabase db = NetworkCredentialsDatabase.getInstance();
-        String key = source.getCredentialKey();
-        db.addCredential(new NetworkCredentialsDatabase.Credential(user, password == null ? "" : password, key, domain, true));
+        String[] credentials = credentialsOf(source, password);
+        registerCredentials(credentials);
         if (source.protocol == SourceProtocol.SMB) {
             // share enumeration happens on the host itself: register it unless another entry exists
+            NetworkCredentialsDatabase db = NetworkCredentialsDatabase.getInstance();
             String hostKey = source.getScheme() + "://" + source.getAuthority() + "/";
-            if (!hostKey.equals(key) && db.getCredential(hostKey) == null) {
-                db.addCredential(new NetworkCredentialsDatabase.Credential(user, password == null ? "" : password, hostKey, domain, true));
+            if (!hostKey.equals(credentials[0]) && db.getCredential(hostKey) == null) {
+                db.addCredential(new NetworkCredentialsDatabase.Credential(credentials[1], credentials[2], hostKey,
+                        credentials[3], true));
             }
         }
+    }
+
+    /**
+     * What FileCoreLibrary needs to open the files of a source: {key, user, password, domain}.
+     * Handed to the frame extraction process with each file, so an edited password applies there
+     * at once.
+     */
+    public static String[] credentialsOf(NetworkSource source, String password) {
+        String user = source.username == null ? "" : source.username;
+        String domain = source.protocol == SourceProtocol.SMB && source.domain != null ? source.domain : "";
+        return new String[]{source.getCredentialKey(), user, password == null ? "" : password, domain};
+    }
+
+    /** Registers the in-memory credential returned by {@link #credentialsOf}; null is ignored. */
+    public static void registerCredentials(String[] credentials) {
+        if (credentials == null || credentials.length != 4 || credentials[0] == null) return;
+        NetworkCredentialsDatabase.getInstance().addCredential(new NetworkCredentialsDatabase.Credential(
+                credentials[1], credentials[2], credentials[0], credentials[3], true));
     }
 
     /** Called at startup, in the background: makes every saved source usable by the player too. */
@@ -286,16 +303,17 @@ public final class SourceAccess {
 
     /**
      * {@link #stat} on the calling (background) thread: the file, or the exception telling why
-     * it cannot be reached. Updates the source status like every connection of the app.
+     * it cannot be reached (a folder now standing at its path is a missing file). Updates the
+     * source status like every connection of the app.
      */
     public static MetaFile2 statNow(Context context, NetworkSource source, MediaRef ref) throws Exception {
         final UserDataStore store = UserDataStore.get(context);
         try {
             verifyHostKey(source);
             MetaFile2 file = MetaFile2Factory.getMetaFileForUrl(source.buildUri(ref, false));
-            if (file == null) throw new FileNotFoundException(ref.path);
+            if (file == null || file.isDirectory()) throw new FileNotFoundException(ref.path);
             // jcifs-ng (default SMB client) describes a missing path instead of failing
-            if (source.protocol == SourceProtocol.SMB && !file.isFile() && !file.isDirectory()) {
+            if (source.protocol == SourceProtocol.SMB && !file.isFile()) {
                 throw new FileNotFoundException(ref.path);
             }
             store.setStatus(source.id, NetworkSource.Status.AVAILABLE);

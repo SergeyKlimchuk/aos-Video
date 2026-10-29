@@ -14,13 +14,14 @@ package com.archos.mediacenter.video.phone;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.media.MediaMetadataRetriever;
+import android.graphics.BitmapFactory;
 import android.os.Handler;
 import android.os.Looper;
 
 import androidx.annotation.StringRes;
 import androidx.annotation.VisibleForTesting;
 
+import com.archos.filecorelibrary.MetaFile2;
 import com.archos.mediacenter.video.R;
 import com.archos.mediacenter.video.userdata.MediaRef;
 import com.archos.mediacenter.video.userdata.NetworkError;
@@ -28,19 +29,15 @@ import com.archos.mediacenter.video.userdata.NetworkSource;
 import com.archos.mediacenter.video.userdata.SourceAccess;
 import com.archos.mediacenter.video.userdata.SourceProtocol;
 import com.archos.mediacenter.video.userdata.UserDataStore;
-import com.archos.medialib.IMediaMetadataRetriever;
-import com.archos.medialib.MediaFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Extracts the frames of the hold-to-preview card in the background.
@@ -48,16 +45,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <ul>
  * <li>{@link #COUNT} frames, each in the middle of an equal part of the video: neither the black
  *     first frame nor the very end;</li>
- * <li>the file is looked up first (SMB, FTP): the retriever reports an unreachable server or a
- *     missing file only as missing frames after its timeouts, FileCoreLibrary tells why at once;
- *     SFTP only gets its key checked, FileCoreLibrary misreports its other failures;</li>
- * <li>frames extracted once come back from the thumbnail disk cache, without any connection when
- *     the duration is already known;</li>
- * <li>{@link #CONNECTIONS} connections at most, each with its own retriever; the frame nearest to
- *     what the card needs next is always extracted first;</li>
- * <li>{@link #cancel()} aborts the extraction in progress (the native retriever supports a release
- *     from another thread). Only the technical caches are written (frames, duration): no history,
- *     no position.</li>
+ * <li>the file is looked up first (SMB, FTP), before anything comes from the cache: moved,
+ *     renamed or deleted outside the app it is reported missing, replaced or modified it gets its
+ *     own frames and duration. The retriever would report an unreachable server or a missing
+ *     file only as missing frames after its timeouts; FileCoreLibrary tells why at once. SFTP
+ *     only gets its key checked, FileCoreLibrary misreports its other failures;</li>
+ * <li>frames extracted once come back from the thumbnail disk cache, without any other
+ *     connection when the duration of this version of the file is known;</li>
+ * <li>{@link #CONNECTIONS} connections at most, each with its own retriever in the frame process
+ *     ({@link FrameClient}): a file that crashes the decoder never ends the app. The frame nearest
+ *     to what the card needs next is always extracted first;</li>
+ * <li>{@link #cancel()} aborts the extraction in progress. Only the technical caches are written
+ *     (frames, duration): no history, no position.</li>
  * </ul>
  */
 final class PreviewFrames {
@@ -79,6 +78,7 @@ final class PreviewFrames {
     private static final int FAILED = 3;
 
     interface Listener {
+        /** May come again with another value when the file turns out to have changed. */
         void onDuration(long durationMs);
 
         /** A frame, or (frame null) the reason why there is none for this position. */
@@ -93,27 +93,48 @@ final class PreviewFrames {
         /** Opens the file; returns its duration in ms when asked for, -1 otherwise or when unknown. */
         long open(String uri, boolean needDuration) throws Exception;
 
-        /** The frame nearest to this time, or null. */
-        Bitmap frameAt(long timeMs);
+        /** The frame nearest to this time, or null; {@link UnreadableException} for no frame at all. */
+        Bitmap frameAt(long timeMs) throws Exception;
 
         /** Idempotent; may be called from any thread, also while {@link #frameAt} runs. */
         void close();
     }
 
     interface ExtractorFactory {
-        Extractor create(Context context);
+        Extractor create(Context context, NetworkSource source);
     }
 
-    /** Checks that the file can be reached; throws the reason otherwise. */
+    /** The file as the server describes it now. */
+    static final class FileState {
+        final long size;
+        final long modified;
+
+        FileState(long size, long modified) {
+            this.size = size;
+            this.modified = modified;
+        }
+    }
+
+    /** Looks the file up: its state (null when unknown), or throws the reason it cannot be reached. */
     interface Probe {
-        void check(Context context, NetworkSource source, MediaRef ref) throws Exception;
+        FileState check(Context context, NetworkSource source, MediaRef ref) throws Exception;
+    }
+
+    /** The file cannot be read, or crashes the decoder: no other frame is tried. */
+    static final class UnreadableException extends Exception {
+        UnreadableException() {
+            super("unreadable file");
+        }
     }
 
     @VisibleForTesting
-    static ExtractorFactory sFactory = RetrieverExtractor::new;
+    static ExtractorFactory sFactory = RemoteExtractor::new;
 
     @VisibleForTesting
-    static Probe sProbe = SourceAccess::statNow;
+    static Probe sProbe = (context, source, ref) -> {
+        MetaFile2 file = SourceAccess.statNow(context, source, ref);
+        return new FileState(file.length(), file.lastModified());
+    };
 
     @VisibleForTesting
     static Executor sExecutor = Executors.newCachedThreadPool(r -> {
@@ -127,15 +148,18 @@ final class PreviewFrames {
     private final MediaRef mRef;
     private final Listener mListener;
     private final ThumbnailLoader mCache;
-    private final String mCacheKey;
-    private final long mSize;
-    private final long mModified;
     private final Handler mMain = new Handler(Looper.getMainLooper());
 
     private final Object mLock = new Object();
     // guarded by mLock
     private final int[] mState = new int[COUNT];
     private final List<Extractor> mOpen = new ArrayList<>();
+    /** Version of the file the frames belong to: listed or played first, then as looked up. */
+    private long mSize;
+    private long mModified;
+    private String mCacheKey;
+    /** Why the server could not be asked about the file: no connection is tried then. */
+    private Exception mUnreachable;
     private int mFocus;
     private boolean mForward = true;
     private long mDuration;
@@ -146,6 +170,11 @@ final class PreviewFrames {
     private boolean mOthersStarted;
     private boolean mCancelled;
 
+    /**
+     * @param size            size as listed or played, may be stale (history, favorites)
+     * @param modified        modification time as listed, -1 when unknown
+     * @param knownDurationMs duration known for the file, may belong to an earlier version of it
+     */
     PreviewFrames(Context context, NetworkSource source, MediaRef ref, long size, long modified, long knownDurationMs,
                   Listener listener) {
         mContext = context.getApplicationContext();
@@ -171,12 +200,6 @@ final class PreviewFrames {
     }
 
     void start() {
-        long duration;
-        synchronized (mLock) {
-            duration = mDuration;
-        }
-        // a known duration is shown at once, before any connection
-        if (duration > 0) mListener.onDuration(duration);
         sExecutor.execute(() -> run(true));
     }
 
@@ -200,7 +223,7 @@ final class PreviewFrames {
             open = new ArrayList<>(mOpen);
         }
         mMain.removeCallbacksAndMessages(null);
-        // releasing waits for the native call in progress: never on the main thread
+        // releasing waits for the call in progress: never on the main thread
         for (Extractor e : open) sExecutor.execute(e::close);
     }
 
@@ -211,20 +234,35 @@ final class PreviewFrames {
     }
 
     /**
-     * One connection. The first one starts without any when the duration is known (the frames
-     * may all be cached), finds the duration otherwise, then starts the other ones; all take the
-     * next needed frame until none is left.
+     * One connection. The first one looks the file up, then starts without any connection when
+     * the duration is known (the frames may all be cached), finds the duration otherwise, then
+     * starts the other ones; all take the next needed frame until none is left.
      */
     private void run(boolean first) {
         Extractor extractor = null;
         int index = -1;
         try {
+            if (first) {
+                checkFile();
+                long known;
+                synchronized (mLock) {
+                    known = mDuration;
+                }
+                // known for this version of the file: shown before any frame
+                if (known > 0) post(() -> mListener.onDuration(known));
+            }
             long duration;
+            String key;
+            long size;
+            long modified;
             synchronized (mLock) {
                 duration = mDuration;
+                key = mCacheKey;
+                size = mSize;
+                modified = mModified;
             }
             if (!first || duration <= 0) {
-                extractor = open(first);
+                extractor = open();
                 if (extractor == null) return;
                 long fileDuration = extractor.open(uri(), duration <= 0);
                 if (duration <= 0) {
@@ -236,24 +274,24 @@ final class PreviewFrames {
                         abort(-1, R.string.phone_preview_error_read);
                         return;
                     }
-                    // technical cache: the next preview of this file needs no connection
-                    UserDataStore.get(mContext).putMediaInfo(mRef, mSize, mModified, duration);
+                    // technical cache: the next preview of this file needs no other connection
+                    UserDataStore.get(mContext).putMediaInfo(mRef, size, modified, duration);
                     final long d = duration;
                     post(() -> mListener.onDuration(d));
                 }
                 if (first) startOthers();
             }
             while ((index = next()) >= 0) {
-                File file = mCache.previewFile(mCacheKey, COUNT, index);
+                File file = mCache.previewFile(key, COUNT, index);
                 Bitmap frame = mCache.readPreviewFrame(file);
                 if (frame == null) {
                     if (extractor == null) {
-                        extractor = open(first);
+                        extractor = open();
                         if (extractor == null) return;
                         extractor.open(uri(), false);
                         startOthers();
                     }
-                    frame = fit(extractor.frameAt(timeOf(index, duration)));
+                    frame = extractor.frameAt(timeOf(index, duration));
                     if (frame != null && !isCancelled()) mCache.savePreviewFrame(file, frame);
                     if (giveUp(frame != null)) {
                         abort(index, R.string.phone_preview_error_read);
@@ -263,13 +301,17 @@ final class PreviewFrames {
                 deliver(index, frame, R.string.phone_preview_frame_unavailable);
                 index = -1;
             }
+        } catch (UnreadableException e) {
+            // cannot be opened, or crashed the decoder: the other frames would do the same
+            abort(index, R.string.phone_preview_error_read);
         } catch (SourceAccess.HostKeyException e) {
             if (first) abort(index, R.string.phone_preview_error_host_key);
-        } catch (Exception e) {
+        } catch (Exception | OutOfMemoryError e) {
             if (log.isDebugEnabled()) log.debug("run: {} ({})", mRef.getName(), e.getClass().getSimpleName());
-            if (first) abort(index, NetworkError.of(e).kind.messageRes);
+            int reason = e instanceof Exception ? NetworkError.of(e).kind.messageRes : R.string.phone_preview_error_read;
+            if (first) abort(index, reason);
             // a helper connection that cannot open simply leaves the frames to the others
-            else if (index >= 0) deliver(index, null, NetworkError.of(e).kind.messageRes);
+            else if (index >= 0) deliver(index, null, reason);
         } finally {
             if (extractor != null) {
                 synchronized (mLock) {
@@ -277,6 +319,39 @@ final class PreviewFrames {
                 }
                 extractor.close();
             }
+        }
+    }
+
+    /**
+     * Looks the file up before anything is shown from the cache (SMB, FTP), since it may have
+     * changed outside the app: gone (moved, renamed, deleted) or no longer readable, nothing of it
+     * is shown; another version of it (replaced, modified) gets its own frames and its duration
+     * read again. When the server cannot be asked, what is cached is still shown.
+     */
+    private void checkFile() throws Exception {
+        // FileCoreLibrary misreports SFTP failures: only its key is checked, at the first connection
+        if (mSource.protocol == SourceProtocol.SFTP) return;
+        FileState state;
+        try {
+            state = sProbe.check(mContext, mSource, mRef);
+        } catch (Exception e) {
+            NetworkError.Kind kind = NetworkError.classify(e);
+            if (kind == NetworkError.Kind.NOT_FOUND || kind == NetworkError.Kind.ACCESS_DENIED) throw e;
+            synchronized (mLock) {
+                mUnreachable = e;
+            }
+            return;
+        }
+        if (state == null) return;
+        long known = UserDataStore.get(mContext).getKnownDuration(mRef, state.size, state.modified);
+        synchronized (mLock) {
+            if (state.size != mSize || state.modified != mModified) {
+                mSize = state.size;
+                mModified = state.modified;
+                mCacheKey = mCache.previewKey(mRef, state.size, state.modified);
+            }
+            // a duration known beforehand may belong to an earlier version of the file
+            mDuration = known > 0 ? known : -1;
         }
     }
 
@@ -304,17 +379,17 @@ final class PreviewFrames {
         for (int i = 1; i < CONNECTIONS; i++) sExecutor.execute(() -> run(false));
     }
 
-    /**
-     * A new connection, or null when the preview is already closed.
-     *
-     * @param probe look the file up first (also checks the SFTP key): an unreachable server, bad
-     *              credentials or a missing file then fail at once with their own message
-     */
-    private Extractor open(boolean probe) throws Exception {
-        if (probe && mSource.protocol != SourceProtocol.SFTP) sProbe.check(mContext, mSource, mRef);
+    /** A new connection, or null when the preview is already closed. */
+    private Extractor open() throws Exception {
+        Exception unreachable;
+        synchronized (mLock) {
+            unreachable = mUnreachable;
+        }
+        // the server did not answer the lookup: the retriever would only wait for its timeouts
+        if (unreachable != null) throw unreachable;
         // FileCoreLibrary accepts any SFTP key: check it like every other connection of the app
-        else if (!SourceAccess.canConnectDirectly(mSource)) SourceAccess.verifyHostKey(mSource);
-        Extractor extractor = sFactory.create(mContext);
+        if (!SourceAccess.canConnectDirectly(mSource)) SourceAccess.verifyHostKey(mSource);
+        Extractor extractor = sFactory.create(mContext, mSource);
         synchronized (mLock) {
             if (!mCancelled) {
                 mOpen.add(extractor);
@@ -377,7 +452,7 @@ final class PreviewFrames {
         synchronized (mLock) {
             if (mCancelled) return;
             for (int i = 0; i < COUNT; i++) {
-                if (mState[i] == PENDING || i == current) {
+                if (mState[i] == PENDING || (i == current && mState[i] == LOADING)) {
                     mState[i] = FAILED;
                     mFinished++;
                     failed.add(i);
@@ -397,53 +472,53 @@ final class PreviewFrames {
         });
     }
 
-    private static Bitmap fit(Bitmap frame) {
-        if (frame == null || frame.getWidth() <= MAX_FRAME_WIDTH) return frame;
-        int height = Math.max(1, frame.getHeight() * MAX_FRAME_WIDTH / frame.getWidth());
-        Bitmap scaled = Bitmap.createScaledBitmap(frame, MAX_FRAME_WIDTH, height, true);
-        if (scaled != frame) frame.recycle();
-        return scaled;
-    }
+    /**
+     * A retriever in the frame process: a file that crashes the decoder ends that process, never
+     * the app ({@link FrameClient}). Frames arrive as JPEG, at most {@link #MAX_FRAME_WIDTH} wide.
+     */
+    private static final class RemoteExtractor implements Extractor {
+        private final Context mContext;
+        private final NetworkSource mSource;
+        private volatile FrameClient.Session mSession;
+        private volatile boolean mClosed;
 
-    /** MediaLib retriever: avos when available (any container, network streams), Android otherwise. */
-    private static final class RetrieverExtractor implements Extractor {
-        private final IMediaMetadataRetriever mRetriever;
-        private final AtomicBoolean mClosed = new AtomicBoolean();
-
-        RetrieverExtractor(Context context) {
-            mRetriever = MediaFactory.createMetadataRetriever(context);
+        RemoteExtractor(Context context, NetworkSource source) {
+            mContext = context;
+            mSource = source;
         }
 
         @Override
-        public long open(String uri, boolean needDuration) {
-            // reads only what the demuxer needs, never the whole file
-            mRetriever.setDataSource(uri);
-            if (!needDuration) return -1;
-            String d = mRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
+        public long open(String uri, boolean needDuration) throws Exception {
+            FrameClient.Session session = FrameClient.get(mContext).open(mSource, uri);
+            mSession = session;
+            // closed meanwhile
+            if (mClosed) session.close();
             try {
-                return d != null ? Long.parseLong(d.trim()) : -1;
-            } catch (NumberFormatException e) {
-                return -1;
+                if (!session.open()) throw new UnreadableException();
+                return needDuration ? session.duration() : -1;
+            } catch (FrameClient.CrashException e) {
+                throw new UnreadableException();
             }
         }
 
         @Override
-        public Bitmap frameAt(long timeMs) {
+        public Bitmap frameAt(long timeMs) throws Exception {
+            FrameClient.Session session = mSession;
+            if (session == null) return null;
+            byte[] jpeg;
             try {
-                return mRetriever.getFrameAtTime(timeMs * 1000, IMediaMetadataRetriever.OPTION_CLOSEST_SYNC);
-            } catch (RuntimeException e) {
-                return null;
+                jpeg = session.frameAt(timeMs, MAX_FRAME_WIDTH);
+            } catch (FrameClient.CrashException e) {
+                throw new UnreadableException();
             }
+            return jpeg != null ? BitmapFactory.decodeByteArray(jpeg, 0, jpeg.length) : null;
         }
 
         @Override
         public void close() {
-            if (!mClosed.compareAndSet(false, true)) return;
-            try {
-                mRetriever.release();
-            } catch (RuntimeException | IOException ignored) {
-                // nothing to clean up
-            }
+            mClosed = true;
+            FrameClient.Session session = mSession;
+            if (session != null) session.close();
         }
     }
 }

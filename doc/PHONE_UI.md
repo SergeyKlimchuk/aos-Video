@@ -91,16 +91,46 @@ VideoPreview (card, blur, layout) <── PreviewFrames (extraction + cache) ─
 - A frame that cannot be decoded is reported as such, never replaced by another frame under
   its time code; while a frame loads, the previous one is dimmed under a spinner.
 - `PreviewFrames` extracts 20 frames, each in the middle of an equal part of the video, with
-  two connections, nearest-needed frame first. Before the first connection the file is looked
-  up through FileCoreLibrary (`SourceAccess.statNow`, SMB and FTP; SFTP only gets its key
-  checked, FileCoreLibrary misreports its other failures): the retriever reports an
+  two connections, nearest-needed frame first. Before anything is shown, even from the cache,
+  the file is looked up through FileCoreLibrary (`SourceAccess.statNow`, SMB and FTP; SFTP only
+  gets its key checked, FileCoreLibrary misreports its other failures): the retriever reports an
   unreachable server, bad credentials or a missing file only as missing frames after its
   timeouts. Frames that could not be obtained show their reason on the card. Frames
   are cached next to the thumbnails (same 256 MB limit, same "Clear cache") and the duration
-  found goes to the media info cache, so a cached video needs no connection. Three failed
+  found goes to the media info cache, so a cached video needs only that lookup. Three failed
   extractions in a row (six once some succeeded) give up the remaining frames; closing the card
-  releases the retrievers from a background thread, which aborts the native extraction.
+  releases the retrievers, which aborts the native extraction.
+- Files changed outside the app (the lookup decides):
+
+  | On the server | Card |
+  | --- | --- |
+  | moved, renamed, deleted, a folder in its place | "file not found", no cached frame |
+  | no longer readable (permissions) | "access denied", no cached frame |
+  | replaced or modified (size or time differs) | new frames, duration read again |
+  | damaged | "cannot be read" after a few frames, or at once if it crashes the decoder |
+  | server unreachable, bad credentials | cached frames, the reason for the others |
+
+  A duration is only reused for the same size and modification time
+  (`UserDataStore.getKnownDuration(ref, size, modified)`): the retriever answers a time beyond
+  the end of a shorter file with its default frame, which would show under wrong time codes.
 - Nothing is played and nothing is written to the history or the positions.
+
+## Frame extraction process
+
+The native retriever (avos/FFmpeg) can crash on a damaged or unusual file. The legacy UI only
+runs it in `:scanner`; the phone UI runs it in `:frames` (`FrameService`, AIDL `IFrameService`),
+never in the app process, for the list thumbnails and the preview card alike.
+
+- `FrameClient` binds on demand and unbinds a minute after its last session. Each session is
+  one retriever on one file; frames come back as JPEG (no large bitmap over Binder).
+  Credentials go with each file (`SourceAccess.credentialsOf`), so an edited password applies
+  in `:frames` at once.
+- When the process dies during a call, the call is tried again alone (no other call in
+  flight): a second death blames that file (`CrashException`). Sessions that were idle open
+  their file again. A thumbnail that crashes the decoder gets an empty `.crash` marker next to
+  the cached frames: the default icon is shown and the file is not tried again until it
+  changes (new cache key) or "Clear cache". The preview card says "cannot be read".
+- Cached frames are written to a temporary file and renamed, never left truncated.
 
 ## Online metadata
 

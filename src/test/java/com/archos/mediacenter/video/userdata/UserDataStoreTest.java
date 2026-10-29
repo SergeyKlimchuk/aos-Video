@@ -238,6 +238,25 @@ public class UserDataStoreTest {
     }
 
     @Test
+    public void durationOfAnEarlierVersionOfTheFileIsNotKnown() throws Exception {
+        NetworkSource nas = saveSource("192.168.1.10", "Video");
+        MediaRef a = new MediaRef(nas.id, "/Video/a.mkv");
+        mStore.putMediaInfo(a, 1000, 1234, 3_600_000);
+        assertEquals(3_600_000, mStore.getKnownDuration(a, 1000, 1234));
+        // modification time unknown (history, favorites): the size decides
+        assertEquals(3_600_000, mStore.getKnownDuration(a, 1000, -1));
+        // replaced or modified outside the app
+        assertEquals(-1, mStore.getKnownDuration(a, 2000, 1234));
+        assertEquals(-1, mStore.getKnownDuration(a, 1000, 5678));
+        assertEquals(-1, mStore.getKnownDuration(a, -1, -1));
+        // played at the same size: that duration still applies
+        MediaRef b = new MediaRef(nas.id, "/Video/b.mkv");
+        mStore.recordPlayback(b, 500, 60_000, 600_000, false);
+        assertEquals(600_000, mStore.getKnownDuration(b, 500, 999));
+        assertEquals(-1, mStore.getKnownDuration(b, 501, 999));
+    }
+
+    @Test
     public void listenersAreNotifiedOfChanges() throws Exception {
         NetworkSource nas = saveSource("192.168.1.10", "Video");
         final int[] changes = {0};

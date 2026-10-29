@@ -700,6 +700,24 @@ public final class UserDataStore {
         return info == null ? -1 : info.durationMs;
     }
 
+    /**
+     * Duration of this version of the file: read for the same size and modification time, or
+     * played at the same size. -1 when the file was replaced or modified since (another video may
+     * now stand at this path), or when nothing is known. An unknown time compares the size only.
+     */
+    public synchronized long getKnownDuration(MediaRef ref, long size, long modified) {
+        ensureLoaded();
+        if (ref == null || size <= 0) return -1;
+        MediaInfo info = mMediaInfo.get(ref);
+        if (info != null && info.durationMs > 0 && info.size == size
+                && (modified <= 0 || info.modified <= 0 || info.modified == modified)) {
+            return info.durationMs;
+        }
+        RecentVideo recent = mRecents.get(ref);
+        if (recent != null && recent.durationMs > 0 && recent.size == size) return recent.durationMs;
+        return -1;
+    }
+
     public void putMediaInfo(MediaRef ref, long size, long modified, long durationMs) {
         final MediaInfo info = new MediaInfo(size, modified, durationMs);
         synchronized (this) {

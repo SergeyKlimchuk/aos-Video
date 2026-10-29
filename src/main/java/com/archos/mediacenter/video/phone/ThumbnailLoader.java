@@ -16,7 +16,6 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.MediaMetadataRetriever;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.LruCache;
@@ -27,12 +26,11 @@ import com.archos.mediacenter.video.R;
 import com.archos.mediacenter.video.userdata.MediaRef;
 import com.archos.mediacenter.video.userdata.NetworkSource;
 import com.archos.mediacenter.video.userdata.UserDataStore;
-import com.archos.medialib.IMediaMetadataRetriever;
-import com.archos.medialib.MediaFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -61,6 +59,8 @@ import java.util.concurrent.TimeUnit;
  *     time so an edited file never shows a stale frame;</li>
  * <li>generation runs on two threads at most, newest request first (the rows on screen), and the
  *     requests of a screen are dropped when it is left;</li>
+ * <li>frames are extracted in the frame process ({@link FrameClient}): a file that crashes the
+ *     native decoder ends that process only, and is marked so it is not tried again;</li>
  * <li>a failure only means "show the default icon"; it is never an error of the video.</li>
  * </ul>
  */
@@ -71,6 +71,9 @@ public final class ThumbnailLoader {
     private static final String DIR = "phone_thumbnails";
     private static final long MAX_DISK_BYTES = 256L * 1024 * 1024;
     private static final int THUMB_WIDTH = 384;
+    /** Empty file: the decoder crashes on this version of the video, it is not tried again. */
+    private static final String CRASH_SUFFIX = ".crash";
+    private static final String TMP_SUFFIX = ".tmp";
 
     public interface DurationListener {
         void onDuration(long durationMs);
@@ -281,64 +284,91 @@ public final class ThumbnailLoader {
 
     private void load(String key, NetworkSource source, MediaRef ref, long size, long modified, boolean generate) {
         Bitmap bitmap = null;
-        File file = file(key);
-        if (file.exists()) {
-            bitmap = BitmapFactory.decodeFile(file.getPath());
-            if (bitmap != null && !file.setLastModified(System.currentTimeMillis()) && log.isTraceEnabled()) {
-                log.trace("load: cannot touch {}", file);
-            }
-        }
         long duration = -1;
-        if (bitmap == null && !generate) {
-            deliver(key, null, -1);
-            return;
-        }
-        if (bitmap == null) {
-            IMediaMetadataRetriever retriever = MediaFactory.createMetadataRetriever(mContext);
-            try {
-                // reads only what the demuxer needs, never the whole file
-                retriever.setDataSource(source.buildUri(ref, false).toString());
-                bitmap = retriever.getFrameAtTime(-1);
-                String d = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
-                if (d != null) duration = Long.parseLong(d.trim());
-            } catch (RuntimeException e) {
-                if (log.isDebugEnabled()) log.debug("load: no frame for {} ({})", ref.getName(), e.getClass().getSimpleName());
-            } finally {
-                try {
-                    retriever.release();
-                } catch (RuntimeException | IOException ignored) {
-                    // nothing to clean up
+        boolean retryLater = false;
+        try {
+            File file = file(key);
+            if (file.exists()) {
+                bitmap = BitmapFactory.decodeFile(file.getPath());
+                if (bitmap != null && !file.setLastModified(System.currentTimeMillis()) && log.isTraceEnabled()) {
+                    log.trace("load: cannot touch {}", file);
                 }
             }
             if (bitmap != null) {
-                bitmap = scale(bitmap);
-                save(file, bitmap);
+                duration = UserDataStore.get(mContext).getKnownDuration(ref, size, modified);
+            } else if (!generate) {
+                retryLater = true;
+            } else if (!crashMarker(key).exists()) {
+                byte[] jpeg = null;
+                // in the frame extraction process: a file that crashes the decoder ends that
+                // process only (FrameClient), never the app
+                try (FrameClient.Session session = FrameClient.get(mContext)
+                        .open(source, source.buildUri(ref, false).toString())) {
+                    if (session.open()) {
+                        jpeg = session.frameAt(-1, THUMB_WIDTH);
+                        duration = session.duration();
+                    }
+                } catch (FrameClient.CrashException e) {
+                    // never tried again for this version of the file, until "Clear cache"
+                    log.warn("load: {} crashes the decoder, no thumbnail", ref.getName());
+                    markCrashing(key);
+                } catch (IOException | InterruptedException e) {
+                    // the extraction process could not be reached: not the file's fault
+                    retryLater = true;
+                }
+                if (jpeg != null) {
+                    bitmap = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.length);
+                    if (bitmap != null) write(file, jpeg);
+                }
+                if (duration > 0 || bitmap != null) {
+                    UserDataStore.get(mContext).putMediaInfo(ref, size, modified, duration);
+                }
             }
-            if (duration > 0 || bitmap != null) {
-                UserDataStore.get(mContext).putMediaInfo(ref, size, modified, duration);
-            }
-        } else {
-            duration = UserDataStore.get(mContext).getKnownDuration(ref);
+        } catch (Throwable t) {
+            // a failed thumbnail only means the default icon
+            if (log.isDebugEnabled()) log.debug("load: no frame for {} ({})", ref.getName(), t.getClass().getSimpleName());
         }
-        if (bitmap == null) mFailed.add(key);
-        else mMemory.put(key, bitmap);
+        if (bitmap != null) mMemory.put(key, bitmap);
+        else if (!retryLater) mFailed.add(key);
         deliver(key, bitmap, duration);
     }
 
-    private static Bitmap scale(Bitmap source) {
-        if (source.getWidth() <= THUMB_WIDTH) return source;
-        int height = Math.max(1, source.getHeight() * THUMB_WIDTH / source.getWidth());
-        Bitmap scaled = Bitmap.createScaledBitmap(source, THUMB_WIDTH, height, true);
-        if (scaled != source) source.recycle();
-        return scaled;
+    private File crashMarker(String key) {
+        return new File(mDir, key + CRASH_SUFFIX);
+    }
+
+    private void markCrashing(String key) {
+        if (!mDir.exists() && !mDir.mkdirs()) return;
+        try {
+            if (!crashMarker(key).createNewFile() && log.isTraceEnabled()) log.trace("markCrashing: already marked");
+        } catch (IOException e) {
+            log.warn("markCrashing: cannot write marker", e);
+        }
     }
 
     private void save(File file, Bitmap bitmap) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream(64 * 1024);
+        if (bitmap.compress(Bitmap.CompressFormat.JPEG, 82, out)) write(file, out.toByteArray());
+    }
+
+    /**
+     * Writes a cached frame atomically: a reader (another preview of the same file) or a process
+     * that ends meanwhile never leaves a truncated picture behind.
+     */
+    private void write(File file, byte[] jpeg) {
         if (!mDir.exists() && !mDir.mkdirs()) return;
-        try (FileOutputStream out = new FileOutputStream(file)) {
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 82, out);
+        File tmp = null;
+        try {
+            tmp = File.createTempFile(file.getName(), TMP_SUFFIX, mDir);
+            try (FileOutputStream out = new FileOutputStream(tmp)) {
+                out.write(jpeg);
+            }
+            if (!tmp.renameTo(file)) throw new IOException("cannot rename " + tmp.getName());
+            tmp = null;
         } catch (IOException e) {
-            log.warn("save: cannot write thumbnail", e);
+            log.warn("write: cannot write thumbnail", e);
+        } finally {
+            if (tmp != null && !tmp.delete() && log.isTraceEnabled()) log.trace("write: cannot delete {}", tmp);
         }
         trim();
     }
@@ -370,6 +400,9 @@ public final class ThumbnailLoader {
         Arrays.sort(files, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
         for (File f : files) {
             if (total <= MAX_DISK_BYTES * 8 / 10) break;
+            // crash markers weigh nothing; a file being written is renamed in a moment
+            String name = f.getName();
+            if (name.endsWith(CRASH_SUFFIX) || name.endsWith(TMP_SUFFIX)) continue;
             long length = f.length();
             if (f.delete()) total -= length;
         }

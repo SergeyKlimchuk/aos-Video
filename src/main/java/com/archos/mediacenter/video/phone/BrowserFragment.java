@@ -460,7 +460,9 @@ public class BrowserFragment extends Fragment implements PhoneListAdapter.Callba
             long size = f.length();
             String meta = Formats.join(Formats.size(context, size), Formats.extension(f.getName()));
             com.archos.mediacenter.video.userdata.RecentVideo recent = mStore.getRecent(ref);
-            items.add(new ListItems.VideoItem(ref, mSource, f.getName(), size, f.lastModified(), mStore.getKnownDuration(ref),
+            // the duration of a file replaced since under the same name is not shown
+            items.add(new ListItems.VideoItem(ref, mSource, f.getName(), size, f.lastModified(),
+                    mStore.getKnownDuration(ref, size, f.lastModified()),
                     meta, recent != null ? recent.getProgress() : -1, mStore.isFavorite(ref), false));
         }
         mAdapter.submitList(items);
